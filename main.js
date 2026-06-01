@@ -73,23 +73,8 @@ directionalLight.position.set(5, 10, 7);
 scene.add(directionalLight);
 
 
-// --- MAP GENERATION ---
-// Tracks how many tile-rows have been placed along the X axis.
-let cumulativePosition = 0;
-
 // Wumpa collection score
 let wumpaScore = 0;
-
-// --- ENDLESS RUNNER SETTINGS ---
-const TILE_ROWS = 20;   // rows per tile (must match map_generation.js)
-const MESH_SIZE = 5;    // world units per grid cell (must match map_generation.js)
-const TILE_WORLD_LEN = TILE_ROWS * MESH_SIZE;  // world-unit length of one tile (= 100)
-const TILES_AHEAD = 6;   // how many tiles to keep ahead of the character
-const TILES_BEHIND = 1;   // how many tiles to keep behind before recycling
-
-// All active tile entries — each entry is { group: THREE.Group, startX: number }
-// where startX is the world-space X coordinate of the tile's first row.
-const activeTiles = [];
 
 // Main character instance
 const character = new Crash();
@@ -171,20 +156,15 @@ loadAssets()
 
         // --- MAP ---
         // Generate the first batch of tiles (tile 0 is the safe starting platform).
-        const firstBatch = 3;
-        for (let t = 0; t < firstBatch; t++) {
-            const startX = cumulativePosition * MESH_SIZE;
-            cumulativePosition = initTile(scene, 1, cumulativePosition, t === 0);
-            const group = scene.children[scene.children.length - 1];
-            activeTiles.push({ group, startX });
-        }
+        initTile(scene, 3);
+
 
         // --- CHARACTER ---
         scene.add(character.mesh);
         controls.target.set(0, 1, 0);
 
         // Start the forward movement animation
-        moveCharacterForward(window.character, camera);
+        moveCharacterForward(window.character, scene, camera);
 
         // Initialize character movements keyboard listener
         characterMovements(character);
@@ -230,42 +210,7 @@ function animate() {
     if (window.character.mesh) {
         const score = settings.computeScore(wumpaScore, window.brokenBoxes || 0);
         if (window.setHudScore) window.setHudScore(score);
-        if (window.setHudSpeed) window.setHudSpeed(settings.currentSpeed);
-    }
-
-    // --- ENDLESS RUNNER: spawn & recycle tiles ---
-    if (window.character.mesh) {
-        const charX = window.character.mesh.position.x;
-
-        // Spawn new tiles if the character is getting close to the frontier.
-        // cumulativePosition is in grid-rows; multiply by MESH_SIZE for world units.
-        while (charX + TILES_AHEAD * TILE_WORLD_LEN > cumulativePosition * MESH_SIZE) {
-            const startX = cumulativePosition * MESH_SIZE;
-            cumulativePosition = initTile(scene, 1, cumulativePosition, false);
-            const group = scene.children[scene.children.length - 1];
-            activeTiles.push({ group, startX });
-        }
-
-        // Recycle tiles that are too far behind the character.
-        // startX + TILE_WORLD_LEN is the world-X of the tile's trailing edge.
-        while (
-            activeTiles.length > 0 &&
-            activeTiles[0].startX + TILE_WORLD_LEN < charX - TILES_BEHIND * TILE_WORLD_LEN
-        ) {
-            const { group: old } = activeTiles.shift();
-            scene.remove(old);
-            // Dispose geometries and materials to free GPU memory.
-            old.traverse((obj) => {
-                if (obj.isMesh) {
-                    obj.geometry?.dispose();
-                    if (Array.isArray(obj.material)) {
-                        obj.material.forEach(m => m.dispose());
-                    } else {
-                        obj.material?.dispose();
-                    }
-                }
-            });
-        }
+        // TODO: Adjust if (window.setHudSpeed) window.setHudSpeed(settings.currentSpeed);
     }
 
     // Keep camera glued to the character

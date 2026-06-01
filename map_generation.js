@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, Cassa, RockSphere, Totem, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel } from './objects.js';
 import { settings } from './settings.js';
 
+// --- Module-level tile tracking ---
+// Every tile created by initTile is pushed here so removeTiles can manage them.
+export const activeTiles = [];
+
+// Tracks the cumulative row offset for the next tile to be placed.
+let cumulativePosition = 0;
+
 // Re-export so callers (e.g. main.js) don't need to change their import path.
 export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel };
 
@@ -15,16 +22,11 @@ export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphe
  *
  * @param {THREE.Scene} scene              - The Three.js scene to add tiles to.
  * @param {number}      num                - Number of tiles to generate (kept for backwards compat).
- * @param {number}      cumulativePosition - Current depth offset (in grid units, along X).
- * @param {boolean}     [isFirstTile=false] - When true, no hazards/collectibles are spawned.
  * @returns {number} Updated cumulativePosition after generating all tiles.
  */
-export function initTile(scene, num, cumulativePosition, isFirstTile = false) {
-
-
+export function initTile(scene, num) {
 
     // --- TILE SETTINGS ---
-    // --- TILE SETTINGS (Aggiornati con i tuoi valori) ---
     var meshSize = 15;     // Preso da meshWidth e meshDepth (15)
     var rows = 6;         // Preso da jMax = 5 (il ciclo da 0 a 5 genera 6 righe in totale)
     var lanes = 1;        // Preso da iMin = 0 (significa che solo la corsia centrale è strada)
@@ -35,7 +37,6 @@ export function initTile(scene, num, cumulativePosition, isFirstTile = false) {
     var minZ = -1 - sideColsLeft;
     var maxZ = 1 + sideColsRight;
 
-
     // TODO METTERE UNA TEXTURE QUI
     var materialRoad = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
     var materialSide = new THREE.MeshStandardMaterial({ color: 0x228B22 });
@@ -43,6 +44,9 @@ export function initTile(scene, num, cumulativePosition, isFirstTile = false) {
 
     for (var k = 0; k < num; k++) {
         var tile = new THREE.Group();
+
+        // Store the starting X position so removeTiles can compare against it
+        tile.userData.startX = cumulativePosition * meshSize;
 
         // 1. BUILD THE GROUND
         for (var row = 0; row < rows; row++) {
@@ -68,15 +72,16 @@ export function initTile(scene, num, cumulativePosition, isFirstTile = false) {
         var mat = initMatrix(rows, totalCols, sideColsLeft, lanes);
 
         // 3. SPAWN OBJECTS
+        var isFirstTile = (num === 3) && (k === 0);
         initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition, totalCols, sideColsLeft);
 
         // Update the depth position for the next tile
         cumulativePosition += rows + 1;
 
+        // Track the tile and add it to the scene
+        activeTiles.push(tile);
         scene.add(tile);
     }
-
-    return cumulativePosition;
 }
 
 
@@ -294,362 +299,37 @@ function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition, total
     }
 }
 
-// function initObjects(tile, flag) {
-//     let zPosition = -cumulativePosition;
-//     let offset = 1;
-//     if (settings.quality !== "high") {
-//         zPosition = zPosition * 3;
-//         offset = 2;
-//     }
-//     const mat = initMatrix();
-//     const rows = mat.length;
-//     const cols = mat[0].length;
 
-//     for (let i = rows - 1; i >= 0; i--) {
-//         for (let j = cols - 1; j >= 0; j--) {
-//             const objectType = mat[i][j];
-//             if (objectType === 0) continue; // Skip empty spots
 
-//             const posX = 5 * (j - Math.floor(cols / 2));
-//             const posZ = 5 * (zPosition + i + offset);
+/**
+ * Removes tiles that have fallen far behind the character and spawns
+ * a replacement tile at the front so the world stays populated.
+ *
+ * The character moves along the POSITIVE X axis, so a tile is "behind"
+ * when its last row's X position is well behind the character's current X.
+ */
+export function removeTiles(scene) {
+    const charX = settings.distanceTravelled;
+    // Distance behind the character before a tile gets recycled.
+    const REMOVE_THRESHOLD = 200; // world units
 
-//             /* ----- MAIN ROAD HAZARDS & ITEMS ----- */
-//             if (!flag) {
-//                 switch (objectType) {
-//                     case "spike": {
-//                         const spike = new THREE.Object3D();
-//                         spike.name = "spike";
-//                         const object = models.spike.gltf.clone();
-//                         const collisionBox = initCollisionBox();
-//                         object.scale.set(8, 8, 8);
-//                         collisionBox.scale.set(5, 2, 5);
-//                         spike.add(object);
-//                         spike.add(collisionBox);
-//                         spike.position.set(posX, 0, posZ);
-//                         initCollisionVertices(collisionBox);
-//                         spikeAnimation(spike);
-//                         tile.add(spike);
-//                         break;
-//                     }
-//                     case "roller1": {
-//                         const roller = new THREE.Object3D();
-//                         roller.name = "roller";
-//                         const object1 = models.roller.gltf.clone();
-//                         const object2 = models.roller.gltf.clone();
-//                         const collisionBox = initCollisionBox();
-//                         object1.scale.set(2, 2, 2);
-//                         object1.rotation.z = degToRad(90);
-//                         object2.scale.set(2, 2, 2);
-//                         object2.rotation.z = degToRad(-90);
-//                         object2.position.x = -2;
-//                         collisionBox.scale.set(14, 2.5, 2.5);
+    for (let i = activeTiles.length - 1; i >= 0; i--) {
+        const tile = activeTiles[i];
 
-//                         const rollerGroup = new THREE.Group();
-//                         rollerGroup.add(object1, object2);
-//                         rollerGroup.position.x = 1;
+        // Find the maximum X position among the tile's ground meshes
+        // to determine the tile's trailing edge.
+        let tileMaxX = -Infinity;
+        tile.children.forEach(child => {
+            if (child.position.x > tileMaxX) tileMaxX = child.position.x;
+        });
 
-//                         roller.add(rollerGroup, collisionBox);
-//                         roller.position.set(posX, 5.5, posZ);
-//                         initCollisionVertices(collisionBox);
-//                         rollerHorizontalAnimation(roller);
-//                         tile.add(roller);
-//                         break;
-//                     }
-//                     case "roller2": {
-//                         const roller = new THREE.Object3D();
-//                         roller.name = "roller";
-//                         const object = models.roller.gltf.clone();
-//                         const collisionBox = initCollisionBox();
-//                         object.scale.set(2, 2, 2);
-//                         collisionBox.scale.set(3, 7.5, 3);
-//                         collisionBox.position.y = 4;
-//                         roller.add(object, collisionBox);
-//                         roller.position.set(posX, 0, posZ);
-//                         initCollisionVertices(collisionBox);
-//                         rollerVerticalAnimation(roller);
-//                         tile.add(roller);
-//                         break;
-//                     }
-//                     case "roller3": {
-//                         const roller = new THREE.Object3D();
-//                         roller.name = "roller";
-//                         const object1 = models.roller.gltf.clone();
-//                         const object2 = models.roller.gltf.clone();
-//                         const collisionBox = initCollisionBox();
-//                         object1.scale.set(1.1, 1.1, 1.1);
-//                         object1.rotation.z = degToRad(90);
-//                         object2.scale.set(1.1, 1.1, 1.1);
-//                         object2.rotation.z = degToRad(-90);
-//                         object2.position.x = -1;
-//                         collisionBox.scale.set(7.5, 1.3, 1.3);
+        if (tileMaxX < charX - REMOVE_THRESHOLD) {
+            console.log("deleting tile ...");
+            scene.remove(tile);
+            activeTiles.splice(i, 1);
 
-//                         const rollerGroup = new THREE.Group();
-//                         rollerGroup.add(object1, object2);
-//                         rollerGroup.position.x = 0.5;
-
-//                         roller.add(rollerGroup, collisionBox);
-//                         roller.position.set(posX + 3, 4.7, posZ);
-//                         initCollisionVertices(collisionBox);
-//                         rollerHorizontalAnimation(roller);
-//                         tile.add(roller);
-//                         break;
-//                     }
-//                     case "coin":
-//                     case "coinDown":
-//                     case "coinUp": {
-//                         const coinNumber = randomIntFromInterval(2, 4);
-//                         let baseY = objectType === "coin" ? (4 * randomIntFromInterval(0, 1) + 2.5) : (objectType === "coinUp" ? 6.5 : 2);
-
-//                         for (let y = 0; y < coinNumber; y++) {
-//                             const coin = new THREE.Object3D();
-//                             coin.name = "coin";
-//                             const object = models.coin.gltf.clone();
-//                             const collisionBox = initCollisionBox();
-//                             object.scale.set(10, 10, 10);
-//                             collisionBox.scale.set(1.5, 3, 3.5);
-//                             collisionBox.rotation.y = degToRad(90);
-//                             coin.add(object, collisionBox);
-//                             coin.position.set(posX, baseY, 5 * (zPosition + i + offset - y));
-//                             initCollisionVertices(collisionBox);
-//                             coinAnimation(coin);
-//                             tile.add(coin);
-//                         }
-//                         break;
-//                     }
-//                     case "starUp":
-//                     case "starDown": {
-//                         const star = new THREE.Object3D();
-//                         star.name = "star";
-//                         const object = models.star.gltf.clone();
-//                         const collisionBox = initCollisionBox();
-//                         object.scale.set(0.5, 0.5, 0.5);
-//                         collisionBox.scale.set(3, 3, 1.5);
-//                         star.add(object, collisionBox);
-//                         star.position.set(posX, objectType === "starUp" ? 6 : 2, posZ - 3);
-//                         initCollisionVertices(collisionBox);
-//                         starAnimation(star);
-//                         tile.add(star);
-//                         break;
-//                     }
-//                     case "mushroom": {
-//                         const yPos = randomIntFromInterval(0, 1);
-//                         const mushroom = new THREE.Object3D();
-//                         mushroom.name = "mushroom";
-//                         const object = models.mushroom.gltf.clone();
-//                         const collisionBox = initCollisionBox();
-//                         object.scale.set(0.5, 0.5, 0.5);
-//                         collisionBox.scale.set(2.3, 2.3, 2.3);
-//                         collisionBox.position.y = 0.5;
-//                         mushroom.add(object, collisionBox);
-//                         mushroom.position.set(posX, 4 * yPos + 2, posZ);
-//                         initCollisionVertices(collisionBox);
-//                         mushroomAnimation(mushroom);
-//                         tile.add(mushroom);
-//                         break;
-//                     }
-//                 }
-//             }
-
-//             /* ----- GRASSLAND DECORATIONS ----- */
-//             if (objectType === "random") {
-//                 const randObj = randomIntFromInterval(1, 5);
-//                 switch (randObj) {
-//                     case 1: {
-//                         const block = models.mystery_block.gltf.clone();
-//                         block.scale.set(5, 5, 5);
-//                         block.rotation.y = degToRad(randomIntFromInterval(0, 360));
-//                         block.position.set(posX, 3.5, posZ); // 5 * 0.7
-//                         tile.add(block); break;
-//                     }
-//                     case 2: {
-//                         const block = models.brick_block.gltf.clone();
-//                         block.scale.set(8, 8, 8);
-//                         block.rotation.y = degToRad(randomIntFromInterval(0, 360));
-//                         block.position.set(posX, 2, posZ); // 8 * 0.25
-//                         tile.add(block); break;
-//                     }
-//                     case 3: {
-//                         const block = models.pow_block.gltf.clone();
-//                         block.scale.set(0.8, 0.8, 0.8);
-//                         block.rotation.y = degToRad(randomIntFromInterval(0, 360));
-//                         block.position.set(posX, -0.35, posZ);
-//                         tile.add(block); break;
-//                     }
-//                     case 4: {
-//                         const pipe = models.pipe.gltf.clone();
-//                         pipe.scale.set(10, 10, 10);
-//                         pipe.rotation.x = degToRad(-90);
-//                         pipe.position.set(posX, 5, posZ);
-//                         tile.add(pipe); break;
-//                     }
-//                     case 5: {
-//                         const tree = models.tree.gltf.clone();
-//                         tree.scale.set(0.035, 0.035, 0.035);
-//                         tree.rotation.y = degToRad(randomIntFromInterval(0, 360));
-//                         tree.position.set(posX, 0.5, posZ);
-//                         tile.add(tree); break;
-//                     }
-//                 }
-//             } else if (objectType === "forest1") {
-//                 const forest1 = models.forest1.gltf.clone();
-//                 forest1.scale.set(10, 10, 10);
-//                 forest1.position.set(posX, 0, posZ);
-//                 tile.add(forest1);
-//             } else if (objectType === "forest2") {
-//                 const forest2 = models.forest1.gltf.clone(); // Was named forest1 in original code
-//                 forest2.scale.set(10, 10, 10);
-//                 forest2.rotation.y = degToRad(180);
-//                 forest2.position.set(posX + 10, 0, posZ);
-//                 tile.add(forest2);
-//             }
-//         }
-//     }
-// }
-
-// function initMatrix() {
-//     let mat = [];
-//     const jMax = settings.quality === "low" ? 11 : 13;
-//     const iMax = 18;
-
-//     // Initialize blank matrix
-//     for (let i = 0; i < iMax; i++) {
-//         mat[i] = new Array(jMax).fill(0);
-//     }
-
-//     for (let i = 0; i < iMax; i++) {
-//         for (let j = 0; j < jMax; j++) {
-
-//             // CENTER OF THE ROAD
-//             if (j === Math.floor(jMax / 2)) {
-//                 if (i === 0) {
-//                     const up = Math.random();
-//                     const starProbability = 0.25;
-
-//                     if (up >= 0.5) {
-//                         mat[i][j] = "roller1";
-//                         if (Math.random() < starProbability && !settings.star) {
-//                             const r = Math.random();
-//                             if (r < 0.333) mat[i + 1][j - 1] = "starDown";
-//                             else if (r < 0.666) mat[i + 1][j] = "starDown";
-//                             else mat[i + 1][j + 1] = "starDown";
-//                         }
-//                     } else {
-//                         mat[i][j - 1] = "spike";
-//                         mat[i][j] = "spike";
-//                         mat[i][j + 1] = "spike";
-
-//                         if (Math.random() < starProbability && !settings.star) {
-//                             const r = Math.random();
-//                             if (r < 0.333) mat[i + 1][j - 1] = "starUp";
-//                             else if (r < 0.666) mat[i + 1][j] = "starUp";
-//                             else mat[i + 1][j + 1] = "starUp";
-//                         }
-//                     }
-//                 }
-//                 if (i === 5) {
-//                     if (Math.random() < 0.25) { // mushroomProbability
-//                         const r = Math.random();
-//                         if (r < 0.333) mat[i][j - 1] = "mushroom";
-//                         else if (r < 0.666) mat[i][j] = "mushroom";
-//                         else mat[i][j + 1] = "mushroom";
-//                     }
-//                 }
-//                 if (i === 9) {
-//                     const obstacle = Math.random();
-//                     const coinProbability = 0.5;
-
-//                     if (obstacle >= 0.5) { // Roller
-//                         const position = randomIntFromInterval(1, 5);
-//                         switch (position) {
-//                             case 1:
-//                                 mat[i][j - 1] = "roller2";
-//                                 if (Math.random() < coinProbability) mat[i + 1][Math.random() < 0.5 ? j : j + 1] = "coin";
-//                                 break;
-//                             case 2:
-//                                 mat[i][j] = "roller2";
-//                                 if (Math.random() < coinProbability) mat[i + 1][Math.random() < 0.5 ? j - 1 : j + 1] = "coin";
-//                                 break;
-//                             case 3:
-//                                 mat[i][j + 1] = "roller2";
-//                                 if (Math.random() < coinProbability) mat[i + 1][Math.random() < 0.5 ? j - 1 : j] = "coin";
-//                                 break;
-//                             case 4:
-//                                 mat[i][j - 1] = "roller3";
-//                                 if (Math.random() < coinProbability) {
-//                                     const r = Math.random();
-//                                     if (r < 0.333) mat[i + 2][j - 1] = "coinDown";
-//                                     else if (r < 0.666) mat[i + 2][j] = "coinDown";
-//                                     else mat[i + 2][j + 1] = "coin";
-//                                 }
-//                                 break;
-//                             case 5:
-//                                 mat[i][j] = "roller3";
-//                                 if (Math.random() < coinProbability) {
-//                                     const r = Math.random();
-//                                     if (r < 0.333) mat[i + 2][j - 1] = "coin";
-//                                     else if (r < 0.666) mat[i + 2][j] = "coinDown";
-//                                     else mat[i + 2][j + 1] = "coinDown";
-//                                 }
-//                                 break;
-//                         }
-//                     } else { // Spikes
-//                         const position = randomIntFromInterval(1, 3);
-//                         switch (position) {
-//                             case 1:
-//                                 mat[i][j - 1] = mat[i][j] = "spike";
-//                                 if (Math.random() < coinProbability) {
-//                                     const r = Math.random();
-//                                     mat[i + 1][r < 0.333 ? j - 1 : (r < 0.666 ? j : j + 1)] = r < 0.666 ? "coinUp" : "coin";
-//                                 }
-//                                 break;
-//                             case 2:
-//                                 mat[i][j] = mat[i][j + 1] = "spike";
-//                                 if (Math.random() < coinProbability) {
-//                                     const r = Math.random();
-//                                     mat[i + 1][r < 0.333 ? j - 1 : (r < 0.666 ? j : j + 1)] = r < 0.333 ? "coin" : "coinUp";
-//                                 }
-//                                 break;
-//                             case 3:
-//                                 mat[i][j - 1] = mat[i][j + 1] = "spike";
-//                                 if (Math.random() < coinProbability) {
-//                                     const r = Math.random();
-//                                     mat[i + 1][r < 0.333 ? j - 1 : (r < 0.666 ? j : j + 1)] = r < 0.666 && r >= 0.333 ? "coin" : "coinUp";
-//                                 }
-//                                 break;
-//                         }
-//                     }
-//                 }
-//             }
-
-//             else if (i === 9 && j === 0) {
-//                 const decoration = randomIntFromInterval(1, 3);
-//                 const spawnProbability = settings.quality === "low" ? 0.3 : 0.5;
-//                 const centerJ = Math.floor(jMax / 2);
-
-//                 switch (decoration) {
-//                     case 1:
-//                         mat[i][centerJ + 4] = "forest1";
-//                         break;
-//                     case 2:
-//                         mat[i][centerJ - 6] = "forest2";
-//                         break;
-//                     case 3:
-//                         // Left side decor
-//                         for (let x = 1; x < iMax; x += 3) {
-//                             for (let y = centerJ - 6; y < centerJ; y += 3) {
-//                                 if (Math.random() <= spawnProbability) mat[x][y] = "random";
-//                             }
-//                         }
-//                         // Right side decor
-//                         for (let x = 1; x < iMax; x += 3) {
-//                             for (let y = centerJ + 3; y < centerJ + 7; y += 3) {
-//                                 if (Math.random() <= spawnProbability) mat[x][y] = "random";
-//                             }
-//                         }
-//                         break;
-//                 }
-//             }
-//         }
-//     }
-//     return mat;
-// }
+            // Spawn a replacement tile at the front
+            initTile(scene, 1);
+        }
+    }
+}

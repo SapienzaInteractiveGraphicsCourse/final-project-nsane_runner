@@ -1,37 +1,25 @@
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
 import * as THREE from 'three';
 import { settings } from './settings.js';
+import { removeTiles } from './map_generation.js';
 
 // Array to store active movement tweens so they can be stopped if necessary
 export var characterMovingAnimationTweens = [];
 
-/**
- * Current speed getter — delegates to settings so any module can read it.
- * @returns {number} speed in world-units / second
- */
 export function getCharacterSpeed() {
     return settings.currentSpeed;
 }
 
-// Kept for backwards-compat; modules that read `characterSpeed` will get
-// the *initial* value.  Prefer `getCharacterSpeed()` for live readings.
 export var characterSpeed = settings.baseSpeed;
 
-/**
- * Drives the character forward using chained segments so speed can ramp up
- * dynamically with distance.
- *
- * Each segment covers SEGMENT_LEN world-units.  At the start of every
- * segment the duration is recalculated from `settings.currentSpeed` so the
- * acceleration curve defined by the difficulty preset is respected.
- */
 const SEGMENT_LEN = 500; // world-units per tween segment
 
-export function moveCharacterForward(character, camera) {
+export function moveCharacterForward(character, scene, camera) {
 
     function scheduleSegment() {
         const startX = character.mesh ? character.mesh.position.x : character.position.x;
         const speed = settings.getSpeed(startX);   // dynamic!
+        // const speed = 100;
         const duration = (SEGMENT_LEN / speed) * 1000; // ms
 
         const bodyPosition = { x: startX };
@@ -42,14 +30,12 @@ export function moveCharacterForward(character, camera) {
             .onUpdate(function () {
                 if (character.mesh) {
                     character.mesh.position.x = bodyPosition.x;
-
-                    // Keep the settings singleton in sync so other modules can
-                    // call settings.currentSpeed or settings.computeScore().
                     settings.distanceTravelled = bodyPosition.x;
                 }
+                removeTiles(scene)
             })
+
             .onComplete(function () {
-                // Chain: schedule the next segment (with re-evaluated speed)
                 scheduleSegment();
             })
             .start();
@@ -57,55 +43,47 @@ export function moveCharacterForward(character, camera) {
         characterMovingAnimationTweens.push(segmentTween);
     }
 
-    // Kick off the first segment
     scheduleSegment();
 
-    // Start the walking animation
     characterWalkAnimation(character);
 }
 
-// Pre-allocate a reusable quaternion outside the update loop to prevent memory leaks/stutters
-const tempQuaternion = new THREE.Quaternion();
 
 export function characterWalkAnimation(character) {
-    // =========================================================================
-    //  BONE REFERENCES
-    // =========================================================================
-    // --- Lower body ---
-    const leftLeg1  = character.mesh.getObjectByName("leg1_45");      // left upper leg (hip)
-    const leftLeg2  = character.mesh.getObjectByName("leg2_44");      // left lower leg (calf/knee)
-    const leftFoot  = character.mesh.getObjectByName("foot_43");      // left foot
-    const leftToe   = character.mesh.getObjectByName("toe_42");       // left toes
+    const leftLeg1 = character.mesh.getObjectByName("leg1_45");
+    const leftLeg2 = character.mesh.getObjectByName("leg2_44");
+    const leftFoot = character.mesh.getObjectByName("foot_43");      // left foot
+    const leftToe = character.mesh.getObjectByName("toe_42");       // left toes
     const rightLeg1 = character.mesh.getObjectByName("leg1001_49");   // right upper leg (hip)
     const rightLeg2 = character.mesh.getObjectByName("leg2001_48");   // right lower leg (calf/knee)
     const rightFoot = character.mesh.getObjectByName("foot001_47");   // right foot
-    const rightToe  = character.mesh.getObjectByName("toe001_46");    // right toes
+    const rightToe = character.mesh.getObjectByName("toe001_46");    // right toes
 
     // --- Upper body ---
-    const leftArm1  = character.mesh.getObjectByName("arm1_27");      // left upper arm (shoulder)
-    const leftArm2  = character.mesh.getObjectByName("arm2_26");      // left forearm (elbow)
+    const leftArm1 = character.mesh.getObjectByName("arm1_27");      // left upper arm (shoulder)
+    const leftArm2 = character.mesh.getObjectByName("arm2_26");      // left forearm (elbow)
     const rightArm1 = character.mesh.getObjectByName("arm1001_40");   // right upper arm (shoulder)
     const rightArm2 = character.mesh.getObjectByName("arm2001_39");   // right forearm (elbow)
 
     // --- Torso / core ---
-    const body      = character.mesh.getObjectByName("body_41");      // upper body / spine
+    const body = character.mesh.getObjectByName("body_41");      // upper body / spine
 
     // =========================================================================
     //  SAVE INITIAL (REST) POSE
     // =========================================================================
     const rest = {
         // Legs
-        lL1: leftLeg1  ? leftLeg1.rotation.clone()  : null,
-        lL2: leftLeg2  ? leftLeg2.rotation.clone()  : null,
-        lF:  leftFoot  ? leftFoot.rotation.clone()   : null,
-        lT:  leftToe   ? leftToe.rotation.clone()    : null,
+        lL1: leftLeg1 ? leftLeg1.rotation.clone() : null,
+        lL2: leftLeg2 ? leftLeg2.rotation.clone() : null,
+        lF: leftFoot ? leftFoot.rotation.clone() : null,
+        lT: leftToe ? leftToe.rotation.clone() : null,
         rL1: rightLeg1 ? rightLeg1.rotation.clone() : null,
         rL2: rightLeg2 ? rightLeg2.rotation.clone() : null,
-        rF:  rightFoot ? rightFoot.rotation.clone()  : null,
-        rT:  rightToe  ? rightToe.rotation.clone()   : null,
+        rF: rightFoot ? rightFoot.rotation.clone() : null,
+        rT: rightToe ? rightToe.rotation.clone() : null,
         // Arms
-        lA1: leftArm1  ? leftArm1.rotation.clone()  : null,
-        lA2: leftArm2  ? leftArm2.rotation.clone()  : null,
+        lA1: leftArm1 ? leftArm1.rotation.clone() : null,
+        lA2: leftArm2 ? leftArm2.rotation.clone() : null,
         rA1: rightArm1 ? rightArm1.rotation.clone() : null,
         rA2: rightArm2 ? rightArm2.rotation.clone() : null,
         // Torso (position only — no rotation to avoid axis-misalignment tilt)
@@ -118,19 +96,19 @@ export function characterWalkAnimation(character) {
     const cycleTime = 550;  // ms per full stride cycle — fast but readable
 
     // --- Leg amplitudes (radians) ---
-    const hipSwing       = 0.7;   // upper-leg forward/back swing
-    const kneeFlexMax    = 0.75;  // max calf bend when knee is lifted
-    const kneeFlexMin    = 0.1;   // slight residual bend on the planted leg
-    const footRock       = 0.25;  // ankle push-off articulation
-    const toeFlick       = 0.2;   // toe spring at push-off
+    const hipSwing = 0.7;   // upper-leg forward/back swing
+    const kneeFlexMax = 0.75;  // max calf bend when knee is lifted
+    const kneeFlexMin = 0.1;   // slight residual bend on the planted leg
+    const footRock = 0.25;  // ankle push-off articulation
+    const toeFlick = 0.2;   // toe spring at push-off
 
     // --- Arm amplitudes (radians) ---
-    const shoulderSwing  = 0.55;  // upper-arm forward/back drive
-    const elbowFlexMax   = 0.7;   // acute elbow bend on the forward arm
-    const elbowFlexMin   = 0.05;  // near-straight on the trailing arm
+    const shoulderSwing = 0.55;  // upper-arm forward/back drive
+    const elbowFlexMax = 0.7;   // acute elbow bend on the forward arm
+    const elbowFlexMin = 0.05;  // near-straight on the trailing arm
 
     // --- Body dynamics ---
-    const bodyBounce     = 0.15;  // subtle vertical bounce amplitude (Y translation)
+    const bodyBounce = 0.15;  // subtle vertical bounce amplitude (Y translation)
 
     // =========================================================================
     //  TWEEN 1 — LOWER BODY (Legs + Body Bounce)
@@ -148,29 +126,29 @@ export function characterWalkAnimation(character) {
             const sinR = Math.sin(p + Math.PI);
 
             // --- UPPER LEGS (hip drive) ---
-            if (leftLeg1)  leftLeg1.rotation.x  = rest.lL1.x + sinL * hipSwing;
+            if (leftLeg1) leftLeg1.rotation.x = rest.lL1.x + sinL * hipSwing;
             if (rightLeg1) rightLeg1.rotation.x = rest.rL1.x + sinR * hipSwing;
 
             // --- LOWER LEGS (knee flex) ---
             // Smooth blend: use clamped positive sine for gradual knee bend
-            const leftKnee  = Math.max(0, sinL);   // 0 when planted, 0→1 when lifting
+            const leftKnee = Math.max(0, sinL);   // 0 when planted, 0→1 when lifting
             const rightKnee = Math.max(0, sinR);
-            const leftKneeFlex  = kneeFlexMin + (kneeFlexMax - kneeFlexMin) * leftKnee;
+            const leftKneeFlex = kneeFlexMin + (kneeFlexMax - kneeFlexMin) * leftKnee;
             const rightKneeFlex = kneeFlexMin + (kneeFlexMax - kneeFlexMin) * rightKnee;
 
-            if (leftLeg2)  leftLeg2.rotation.x  = rest.lL2.x - leftKneeFlex;
+            if (leftLeg2) leftLeg2.rotation.x = rest.lL2.x - leftKneeFlex;
             if (rightLeg2) rightLeg2.rotation.x = rest.rL2.x - rightKneeFlex;
 
             // --- FEET (ankle articulation) ---
             // Plantarflex (point toes) when leg pushes back, dorsiflex when swinging forward
-            if (leftFoot)  leftFoot.rotation.x  = rest.lF.x - sinL * footRock;
+            if (leftFoot) leftFoot.rotation.x = rest.lF.x - sinL * footRock;
             if (rightFoot) rightFoot.rotation.x = rest.rF.x - sinR * footRock;
 
             // --- TOES (flick at push-off) ---
             // Smoothly engage toes only during the push-off phase (sin < -0.3)
-            const leftToeBend  = Math.max(0, (-sinL - 0.3) / 0.7) * toeFlick;
+            const leftToeBend = Math.max(0, (-sinL - 0.3) / 0.7) * toeFlick;
             const rightToeBend = Math.max(0, (-sinR - 0.3) / 0.7) * toeFlick;
-            if (leftToe)  leftToe.rotation.x  = rest.lT.x + leftToeBend;
+            if (leftToe) leftToe.rotation.x = rest.lT.x + leftToeBend;
             if (rightToe) rightToe.rotation.x = rest.rT.x + rightToeBend;
 
             // --- BODY BOUNCE (double-frequency — bounces twice per stride) ---
@@ -201,17 +179,17 @@ export function characterWalkAnimation(character) {
             const sinRA = Math.sin(p);
 
             // --- UPPER ARMS (shoulder drive on Y-axis per model rigging) ---
-            if (leftArm1)  leftArm1.rotation.y  = rest.lA1.y + sinLA * shoulderSwing;
+            if (leftArm1) leftArm1.rotation.y = rest.lA1.y + sinLA * shoulderSwing;
             if (rightArm1) rightArm1.rotation.y = rest.rA1.y + sinRA * shoulderSwing;
 
             // --- FOREARMS (elbow flex) ---
             // Smooth blend: flex acutely when arm swings forward, extend when trailing
-            const leftElbow  = Math.max(0, sinLA);   // 0→1 on forward swing
+            const leftElbow = Math.max(0, sinLA);   // 0→1 on forward swing
             const rightElbow = Math.max(0, sinRA);
-            const leftElbowFlex  = elbowFlexMin + (elbowFlexMax - elbowFlexMin) * leftElbow;
+            const leftElbowFlex = elbowFlexMin + (elbowFlexMax - elbowFlexMin) * leftElbow;
             const rightElbowFlex = elbowFlexMin + (elbowFlexMax - elbowFlexMin) * rightElbow;
 
-            if (leftArm2)  leftArm2.rotation.y  = rest.lA2.y - leftElbowFlex;
+            if (leftArm2) leftArm2.rotation.y = rest.lA2.y - leftElbowFlex;
             if (rightArm2) rightArm2.rotation.y = rest.rA2.y + rightElbowFlex;
         })
         .repeat(Infinity)
@@ -220,7 +198,7 @@ export function characterWalkAnimation(character) {
     // =========================================================================
     //  STORE REFERENCES (for pause / spin-attack interruption)
     // =========================================================================
-    character.walkTween    = legTween;
+    character.walkTween = legTween;
     character.armWalkTween = armTween;
     characterMovingAnimationTweens.push(legTween, armTween);
 }
