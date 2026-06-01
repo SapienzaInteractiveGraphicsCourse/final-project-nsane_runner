@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSANE-RUNNER — Crash Bandicoot Endless Runner</title>
+    <meta name="description" content="An endless runner game inspired by Crash Bandicoot. Choose your character, map, and difficulty and run!">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <!-- ===== SPLASH / MENU SCREEN ===== -->
+    <div id="splash-screen">
+        <div class="splash-glow-ring"></div>
+
+        <div class="menu-wrapper">
+
+            <!-- HEADER -->
+            <header class="menu-header">
+                <p class="splash-subtitle">Bandicoot Edition</p>
+                <h1 class="splash-title">NSANE<br>RUNNER</h1>
+                <div class="splash-divider"></div>
+            </header>
+
+            <!-- CHARACTER SELECTION -->
+            <section class="menu-section" id="section-character">
+                <h2 class="menu-section-title">
+                    <span class="section-icon">🎮</span> Choose Your Character
+                </h2>
+                <div class="menu-cards" id="character-cards">
+                    <button class="menu-card" data-group="character" data-value="crash" id="card-crash">
+                        <div class="card-icon-wrap crash-icon">
+                            <span class="card-emoji">🦊</span>
+                        </div>
+                        <span class="card-name">Crash Bandicoot</span>
+                        <span class="card-desc">The original hero</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="character" data-value="cortex" id="card-cortex">
+                        <div class="card-icon-wrap cortex-icon">
+                            <span class="card-emoji">🧪</span>
+                        </div>
+                        <span class="card-name">Dr. Neo Cortex</span>
+                        <span class="card-desc">The mad scientist</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- MAP SELECTION -->
+            <section class="menu-section" id="section-map">
+                <h2 class="menu-section-title">
+                    <span class="section-icon">🗺️</span> Choose Your Map
+                </h2>
+                <div class="menu-cards menu-cards--triple" id="map-cards">
+                    <button class="menu-card" data-group="map" data-value="beach" id="card-beach">
+                        <div class="card-icon-wrap beach-icon">
+                            <span class="card-emoji">🏖️</span>
+                        </div>
+                        <span class="card-name">N. Sanity Beach</span>
+                        <span class="card-desc">Tropical paradise</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="map" data-value="temple" id="card-temple">
+                        <div class="card-icon-wrap temple-icon">
+                            <span class="card-emoji">🏛️</span>
+                        </div>
+                        <span class="card-name">Temple Ruins</span>
+                        <span class="card-desc">Ancient mysteries</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="map" data-value="cortexpower" id="card-cortexpower">
+                        <div class="card-icon-wrap power-icon">
+                            <span class="card-emoji">⚡</span>
+                        </div>
+                        <span class="card-name">Cortex Power</span>
+                        <span class="card-desc">Industrial danger</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- DIFFICULTY SELECTION -->
+            <section class="menu-section" id="section-difficulty">
+                <h2 class="menu-section-title">
+                    <span class="section-icon">⚙️</span> Difficulty
+                </h2>
+                <div class="menu-cards menu-cards--triple" id="difficulty-cards">
+                    <button class="menu-card card--easy" data-group="difficulty" data-value="easy" id="card-easy">
+                        <div class="card-icon-wrap easy-icon">
+                            <span class="card-emoji">😊</span>
+                        </div>
+                        <span class="card-name">Easy</span>
+                        <span class="card-desc">Relaxed pace</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card card--medium" data-group="difficulty" data-value="medium" id="card-medium">
+                        <div class="card-icon-wrap medium-icon">
+                            <span class="card-emoji">😤</span>
+                        </div>
+                        <span class="card-name">Medium</span>
+                        <span class="card-desc">Balanced challenge</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card card--hard" data-group="difficulty" data-value="hard" id="card-hard">
+                        <div class="card-icon-wrap hard-icon">
+                            <span class="card-emoji">💀</span>
+                        </div>
+                        <span class="card-name">Hard</span>
+                        <span class="card-desc">N. Sane mode!</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- VALIDATION ERROR -->
+            <p class="menu-error hidden" id="menu-error">
+                ⚠️ Please select a character, map, and difficulty before playing!
+            </p>
+
+            <!-- PLAY BUTTON -->
+            <button class="play-btn" id="play-btn">
+                <span class="play-btn-text">Play Game</span>
+                <span class="play-btn-icon">▶</span>
+            </button>
+
+    </div><!-- /.menu-wrapper -->
+    </div><!-- /#splash-screen -->
+
+    <script type="module" src="/main.js"></script>
+
+    <script>
+        // ---- MENU SELECTION LOGIC ----
+        (function() {
+            const selections = { character: null, map: null, difficulty: null };
+
+            // Handle card clicks
+            document.querySelectorAll('.menu-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const group = card.dataset.group;
+                    const value = card.dataset.value;
+
+                    // Deselect siblings in the same group
+                    document.querySelectorAll(`.menu-card[data-group="${group}"]`).forEach(c => {
+                        c.classList.remove('selected');
+                    });
+
+                    // Select this card
+                    card.classList.add('selected');
+                    selections[group] = value;
+
+                    // Hide error message if all selections are made
+                    if (selections.character && selections.map && selections.difficulty) {
+                        document.getElementById('menu-error').classList.add('hidden');
+                    }
+                });
+            });
+
+            // Play button handler
+            document.getElementById('play-btn').addEventListener('click', () => {
+                if (!selections.character || !selections.map || !selections.difficulty) {
+                    const errEl = document.getElementById('menu-error');
+                    errEl.classList.remove('hidden');
+                    // Shake animation
+                    errEl.classList.remove('shake');
+                    void errEl.offsetWidth;
+                    errEl.classList.add('shake');
+                    return;
+                }
+
+                // Save selections to localStorage
+                localStorage.setItem('nsane_character', selections.character);
+                localStorage.setItem('nsane_map', selections.map);
+                localStorage.setItem('nsane_difficulty', selections.difficulty);
+
+                // Dispatch a custom event so main.js can pick it up
+                window.dispatchEvent(new CustomEvent('nsane-play'));
+
+                // Fade out splash screen
+                const splash = document.getElementById('splash-screen');
+                if (splash) splash.classList.add('hidden');
+            });
+        })();
+    </script>
+</body>
+</html>
+

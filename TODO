@@ -1,0 +1,39 @@
+[x] add tiles
+[x] add main screen -> to finish
+[x] collect object upon collisions (done only for wumpas)
+[x] add collitions
+[x] FIX WUMPAS (NOW THEY GO TO THE CENTER OF THE MAP ON SPAWN)
+[x] add difficoulty levels
+[x] implementing a speed setting -> needs to be improved
+[x] collect wumpascore with HUD
+[x] SOLVE PAUSE BUG, THE GAME KEEPS RUNNING WHEN PAUSED 
+[x] SOLVE STARTUP BUG, THE GAME KEEPS RUNNING EVEN IF ENTER IS NOT PRESSED
+[x] modify running animation
+[x] add ? block and drop mechanism
+
+MUST DO
+[ ] create map and traps
+[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE)
+[ ] REDESIGN SCORE HUD
+[ ] TODO METTERE UNA TEXTURE QUI
+
+
+BUG
+[ ] il gioco quando è in pausa non si blocca *
+[ ] animazioni buggate
+
+[ ] add level 2 aku aku (godmod)
+
+
+OPTINAL
+[ ] add cortex 
+[ ] improve objects generation algorithm
+[ ] character follow mouse animation
+
+
+
+
+MUST DO TOMORROW
+[ ] FIX ANIMATION BUG
+[ ] ADD MAP AND TRAPS -> TEXTURE E DESIGN MAPPA(E) 
+                    ->  REDESIGN UI INIZIALE 
