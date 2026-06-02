@@ -101,9 +101,9 @@ function loadAssets() {
         loadGLTF('/wumpa/scene.gltf'),
         loadGLTF('/gem/scene.gltf'),
         loadGLTF('/newlife/newlife.glb'),
-        loadGLTF("/textures/grass/rock_sphere/scene.gltf"),
+        loadGLTF("/textures/grass/rock_sphere.glb"),
         loadGLTF("/textures/grass/cassa/scene.gltf"),
-        loadGLTF("/textures/grass/totem/scene.gltf"),
+        loadGLTF("/textures/grass/totem.glb"),
     ]).then(([, , wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf]) => ({ wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
 }
 
