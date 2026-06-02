@@ -445,6 +445,33 @@ export class DroppedGem extends THREE.Object3D {
 }
 
 
+
+/**
+ * Helper function to configure shadows, snap the model to the ground (Y=0),
+ * and optimize matrices for static decorative objects.
+ * * @param {THREE.Object3D} object - The cloned GLTF scene object.
+ */
+function setupStaticModel(object) {
+    // 1. Traverse the model to enable shadows on all underlying meshes
+    object.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+
+    const box = new THREE.Box3().setFromObject(object);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    object.position.x -= center.x;
+    object.position.z -= center.z;
+    object.position.y -= box.min.y;
+
+    object.matrixAutoUpdate = false;
+    object.updateMatrix();
+}
+
 /**
  * A decorative cassa (wooden crate) placed on the side strips of the map.
  * Uses absolute world coordinates (xPos, zPos) because it lives outside the
@@ -464,23 +491,25 @@ export class Cassa extends THREE.Object3D {
         this.name = 'cassa';
 
         // Clone the pre-loaded cassa GLTF model.
-        // SkeletonUtils.clone() correctly preserves material groups and
-        // texture bindings on GLTF scenes (unlike a plain .clone()).
         const object = SkeletonUtils.clone(_cassaModelCache);
+
+        // Apply transformations FIRST
         object.scale.set(0.03, 0.03, 0.03);
         object.rotation.y = Math.random() * Math.PI * 2;
 
-        // Snap the model's base to Y = 0 regardless of where the GLTF origin sits.
-        const box = new THREE.Box3().setFromObject(object);
-        object.position.y -= box.min.y;
+        // Process shadows, grounding, and matrix optimizations
+        setupStaticModel(object);
 
         this.add(object);
 
         // Place directly at the computed world position.
         this.position.set(xPos, 0, zPos);
+
+        // Optimize the parent container as well
+        this.matrixAutoUpdate = false;
+        this.updateMatrix();
     }
 }
-
 
 /**
  * A decorative rock sphere placed on the side strips of the map.
@@ -501,21 +530,22 @@ export class RockSphere extends THREE.Object3D {
         this.name = 'rock_sphere';
 
         const object = SkeletonUtils.clone(_rockSphereModelCache);
+
+        // Apply transformations FIRST
         object.scale.set(3, 3, 3);
         object.rotation.y = Math.random() * Math.PI * 2;
 
-        // The GLTF origin may not sit at the model's base, so we compute the
-        // axis-aligned bounding box after scaling and shift the model down by
-        // its minimum Y — this snaps the bottom of the mesh to Y = 0 (ground).
-        const box = new THREE.Box3().setFromObject(object);
-        object.position.y -= box.min.y;
+        // Process shadows, grounding, and matrix optimizations
+        setupStaticModel(object);
 
         this.add(object);
 
         this.position.set(xPos, 0, zPos);
+
+        this.matrixAutoUpdate = false;
+        this.updateMatrix();
     }
 }
-
 
 /**
  * A decorative totem placed on the side strips of the map.
@@ -536,12 +566,19 @@ export class Totem extends THREE.Object3D {
         this.name = 'totem';
 
         const object = SkeletonUtils.clone(_totemModelCache);
+
+        // Apply transformations FIRST (Added random rotation placeholder for visual variety)
         object.scale.set(4, 4, 4);
-        const box = new THREE.Box3().setFromObject(object);
-        object.position.y -= box.min.y;
+        object.rotation.y = Math.random() * Math.PI * 2;
+
+        // Process shadows, grounding, and matrix optimizations
+        setupStaticModel(object);
 
         this.add(object);
 
         this.position.set(xPos, 0, zPos);
+
+        this.matrixAutoUpdate = false;
+        this.updateMatrix();
     }
 }
