@@ -3,11 +3,9 @@ import * as THREE from 'three';
 import { settings } from './settings.js';
 import { removeTiles } from './map_generation.js';
 import { Sound } from './sounds.js';
+import { registerTween } from './tween_registry.js';
 
 const spinSound = new Sound('spinSound.wav');
-
-// Array to store active movement tweens so they can be stopped if necessary
-export var characterMovingAnimationTweens = [];
 
 // =========================================================================
 //  CANONICAL REST POSE — captured once from the model's original bone state
@@ -127,13 +125,12 @@ export function moveCharacterForward(character, scene, camera) {
                 }
                 removeTiles(scene)
             })
-
             .onComplete(function () {
                 scheduleSegment();
-            })
-            .start();
+            });
 
-        characterMovingAnimationTweens.push(segmentTween);
+        registerTween(segmentTween);
+        segmentTween.start();
     }
 
     scheduleSegment();
@@ -147,16 +144,13 @@ export function characterWalkAnimation(character) {
     captureCanonicalRestPose(character);
 
     // --- Stop & clean up any previous walk tweens ---
+    // (the tween registry auto-removes on stop)
     if (character.walkTween) {
         character.walkTween.stop();
-        const idx1 = characterMovingAnimationTweens.indexOf(character.walkTween);
-        if (idx1 !== -1) characterMovingAnimationTweens.splice(idx1, 1);
         character.walkTween = null;
     }
     if (character.armWalkTween) {
         character.armWalkTween.stop();
-        const idx2 = characterMovingAnimationTweens.indexOf(character.armWalkTween);
-        if (idx2 !== -1) characterMovingAnimationTweens.splice(idx2, 1);
         character.armWalkTween = null;
     }
 
@@ -254,8 +248,10 @@ export function characterWalkAnimation(character) {
                 body.position.y = rest.bodyPosY + bounce;
             }
         })
-        .repeat(Infinity)
-        .start();
+        .repeat(Infinity);
+
+    registerTween(legTween);
+    legTween.start();
 
     // =========================================================================
     //  TWEEN 2 — UPPER BODY (Arms)
@@ -288,15 +284,16 @@ export function characterWalkAnimation(character) {
             if (leftArm2) leftArm2.rotation.y = rest.lA2.y - leftElbowFlex;
             if (rightArm2) rightArm2.rotation.y = rest.rA2.y + rightElbowFlex;
         })
-        .repeat(Infinity)
-        .start();
+        .repeat(Infinity);
+
+    registerTween(armTween);
+    armTween.start();
 
     // =========================================================================
     //  STORE REFERENCES (for pause / spin-attack interruption)
     // =========================================================================
     character.walkTween = legTween;
     character.armWalkTween = armTween;
-    characterMovingAnimationTweens.push(legTween, armTween);
 }
 
 export function slideCharacterAnimation(character, targetZ) {
@@ -342,12 +339,12 @@ export function slideCharacterAnimation(character, targetZ) {
             // Ensure the character returns perfectly upright at the end of the animation
             character.mesh.rotation.z = 0;
             character.slideTween = null;
-        })
-        .start();
+        });
 
-    // 3. Save the tween to the character and the global array
+    // 3. Save the tween to the character and register it
     character.slideTween = slideTween;
-    characterMovingAnimationTweens.push(slideTween);
+    registerTween(slideTween);
+    slideTween.start();
 }
 
 export function jumpCharacterAnimation(character) {
@@ -376,7 +373,9 @@ export function jumpCharacterAnimation(character) {
     // Tell Tween.js to automatically start falling down the moment the jump up finishes
     jumpUpTween.chain(fallDownTween);
 
-    // 4. START THE ANIMATION
+    // 4. REGISTER & START
+    registerTween(jumpUpTween);
+    registerTween(fallDownTween);
     jumpUpTween.start();
 }
 
@@ -542,5 +541,9 @@ function rotateCharacterAnimation(character) {
     // =========================================================================
     anticipationTween.chain(spinTween);
     spinTween.chain(recoveryTween);
+
+    registerTween(anticipationTween);
+    registerTween(spinTween);
+    registerTween(recoveryTween);
     anticipationTween.start();
 }

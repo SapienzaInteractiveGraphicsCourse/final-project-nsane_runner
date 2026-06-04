@@ -1,6 +1,7 @@
 import './pause.css';
 import pauseHtml from './pause.html?raw';
 import gameOverHtml from './gameover.html?raw';
+import { pauseAllTweens, resumeAllTweens, stopAllTweens } from './tween_registry.js';
 
 export let isPaused = false;
 export let isGameOver = false;
@@ -30,8 +31,12 @@ export function pauseGame() {
     if (overlay) {
         if (isPaused) {
             overlay.classList.remove('hidden');
+            // Freeze every active tween in place
+            pauseAllTweens();
         } else {
             overlay.classList.add('hidden');
+            // Resume every paused tween from where it left off
+            resumeAllTweens();
         }
     }
 }
@@ -43,6 +48,8 @@ function initGameOverMenu() {
     document.body.appendChild(container.firstElementChild);
 
     document.getElementById('retry-btn').addEventListener('click', () => {
+        // Stop and clear every remaining tween before reloading
+        stopAllTweens();
         location.reload();
     });
     gameOverMenuInitialized = true;
@@ -54,6 +61,10 @@ initGameOverMenu();
 export function gameOver() {
     isGameOver = true;
     isPaused = true;
+
+    // Nuke all active tweens so nothing keeps running behind the overlay
+    stopAllTweens();
+
     const overlay = document.getElementById('gameover-overlay');
     if (overlay) {
         overlay.classList.remove('hidden');

@@ -182,3 +182,78 @@
         font-size: 1.6rem;
     }
 }
+
+
+/* ===================== GEM TRACKER ===================== */
+#gem-tracker {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    pointer-events: none;
+}
+
+.gem-tracker-container {
+    position: relative;
+    width: 280px;
+    height: auto;
+    /* Subtle glow backdrop */
+    filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.5));
+}
+
+/* All gem images are stacked on top of each other */
+.gem-layer {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* The base (empty silhouettes) layer — always visible */
+.gem-base {
+    position: relative;
+    opacity: 0.6;
+}
+
+/* Coloured gem overlays — absolutely positioned on top of the base */
+.gem-color {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+}
+
+/* When a gem is collected, reveal it with an animation */
+.gem-color.collected {
+    opacity: 1;
+    animation: gem-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes gem-reveal {
+    0% {
+        opacity: 0;
+        transform: scale(1.3);
+        filter: brightness(2) drop-shadow(0 0 16px rgba(255, 255, 255, 0.9));
+    }
+    50% {
+        opacity: 1;
+        filter: brightness(1.5) drop-shadow(0 0 10px rgba(255, 255, 255, 0.6));
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+    }
+}
+
+/* ---- Responsive gem tracker ---- */
+@media (max-width: 600px) {
+    .gem-tracker-container {
+        width: 200px;
+    }
+
+    #gem-tracker {
+        bottom: 10px;
+    }
+}

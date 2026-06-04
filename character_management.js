@@ -1,5 +1,5 @@
 import { slideCharacterAnimation, characterJumpHandler, crashHit } from './character_animations.js';
-import { pauseGame } from './game_management.js';
+import { pauseGame, isPaused, isGameOver } from './game_management.js';
 
 
 export function characterMovements(character) {
@@ -37,6 +37,10 @@ export function characterMovements(character) {
     }
 
     document.onmousedown = function (e) {
+        // Ignore gameplay input when paused, game over, or clicking on UI overlays
+        if (isPaused || isGameOver) return;
+        if (e.target.closest('#pause-overlay, #gameover-overlay, .hud')) return;
+
         switch (e.button) {
             case 0: // Left mouse button
                 crashHit(character);

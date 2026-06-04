@@ -15,20 +15,20 @@
 [x] design traps out of carreggiata
 [x] implement sounds
 [x] improve objects generation algorithm
+[x] il gioco quando è in pausa non si blocca
 
 
 TO DO TODAY
-
+[ ] add main menu soundtrack
+[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE)
 
 
 BUG
-[ ] il gioco quando è in pausa non si blocca *
-
 
 MUST DO
+[ ] wumpa streak
+[ ] add gear object
 [ ] TODO METTERE UNA TEXTURE QUI
-[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE)
-[ ] add main menu soundtrack
 
 
 OPTINAL

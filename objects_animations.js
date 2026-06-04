@@ -1,4 +1,5 @@
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
+import { registerTween } from './tween_registry.js';
 
 /**
  * Attaches a looping idle animation to a WumpaFruit Object3D:
@@ -18,14 +19,16 @@ export function wumpa_animation(wumpa) {
     // Tween the Y rotation from 0 → 2π, then repeat forever.
     const rotation = { y: 0 };
 
-    new TWEEN.Tween(rotation)
+    const spinTween = new TWEEN.Tween(rotation)
         .to({ y: Math.PI * 2 }, SPIN_DURATION)
         .easing(TWEEN.Easing.Linear.None)
         .onUpdate(() => {
             wumpa.rotation.y = rotation.y;
         })
-        .repeat(Infinity)
-        .start();
+        .repeat(Infinity);
+
+    registerTween(spinTween);
+    spinTween.start();
 
     // ── 2. BOB (up → down, chained) ────────────────────────────────────
     // Rise tween — Quadratic.Out makes it decelerate as it peaks.
@@ -42,6 +45,8 @@ export function wumpa_animation(wumpa) {
     bobUp.chain(bobDown);
     bobDown.chain(bobUp);
 
+    registerTween(bobUp);
+    registerTween(bobDown);
     bobUp.start();
 }
 
@@ -115,6 +120,12 @@ export function nitro_animation(box) {
     rotLeft.chain(rotLeftBack);
     // rotLeftBack restarts via onComplete ↑
 
+    registerTween(jumpUp);
+    registerTween(jumpDown);
+    registerTween(rotRight);
+    registerTween(rotRightBack);
+    registerTween(rotLeft);
+    registerTween(rotLeftBack);
     jumpUp.start();
 }
 
@@ -148,12 +159,14 @@ export function dropped_item_animation(item) {
         .onComplete(() => {
             // ── 3. CONTINUOUS SPIN ─────────────────────────────────────
             const rotation = { y: 0 };
-            new TWEEN.Tween(rotation)
+            const itemSpinTween = new TWEEN.Tween(rotation)
                 .to({ y: Math.PI * 2 }, SPIN_DURATION)
                 .easing(TWEEN.Easing.Linear.None)
                 .onUpdate(() => { item.rotation.y = rotation.y; })
-                .repeat(Infinity)
-                .start();
+                .repeat(Infinity);
+
+            registerTween(itemSpinTween);
+            itemSpinTween.start();
 
             // ── 4. IDLE BOB ────────────────────────────────────────────
             const bobUp = new TWEEN.Tween(item.position)
@@ -166,9 +179,13 @@ export function dropped_item_animation(item) {
 
             bobUp.chain(bobDown);
             bobDown.chain(bobUp);
+            registerTween(bobUp);
+            registerTween(bobDown);
             bobUp.start();
         });
 
+    registerTween(popUp);
+    registerTween(popDown);
     popUp.chain(popDown);
     popUp.start();
 }
@@ -228,6 +245,12 @@ export function startup_akuaku_animation(akuaku) {
     tiltLeftBack.chain(tiltRight);
     tiltRight.chain(tiltRightBack);
     tiltRightBack.chain(spinAround);
+    registerTween(sleep);
+    registerTween(tiltLeft);
+    registerTween(tiltLeftBack);
+    registerTween(tiltRight);
+    registerTween(tiltRightBack);
+    registerTween(spinAround);
     sleep.start();
 }
 

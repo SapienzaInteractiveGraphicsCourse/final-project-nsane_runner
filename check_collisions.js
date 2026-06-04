@@ -3,12 +3,12 @@ import { AkuAku } from './characters.js';
 import { startup_akuaku_animation } from './objects_animations.js';
 import { gameOver } from './game_management.js';
 import { settings } from './settings.js';
-import { DroppedWumpa, DroppedLife, DroppedGem } from './objects.js';
+import { DroppedWumpa, DroppedLife, DroppedGem, getRandomGemType } from './objects.js';
 import { Sound } from './sounds.js';
 
 // ── Pre-instantiated sound effects (singletons) ──────────────────────────
 const wumpaSound = new Sound('wumpa.wav');
-const crateBreakSound = new Sound('crateBreak.wav');
+const crateBreakSound = new Sound('createBreak.wav');
 const akuakuSound = new Sound('akuaku.wav');
 const akuakuVanish = new Sound('akuaku_vanish.wav');
 const gemSound = new Sound('gemSound.wav');
@@ -250,11 +250,24 @@ export function checkBoxCollisions(scene) {
                             scene.add(droppedLife);
                             console.log('Question box dropped: Extra Life');
                         } else {
-                            // Drop a Crash Gem
-                            const droppedGem = new DroppedGem(dropX, dropY, dropZ);
-                            droppedGem.scale.set(1, 1, 1);
-                            scene.add(droppedGem);
-                            console.log('Question box dropped: Gem');
+                            // Drop a random Crash Gem (if any remain uncollected)
+                            const gemType = getRandomGemType();
+                            if (gemType) {
+                                const droppedGem = new DroppedGem(dropX, dropY, dropZ, gemType);
+                                scene.add(droppedGem);
+                                console.log(`Question box dropped: ${gemType}`);
+                            } else {
+                                // All gems collected — fall back to wumpas (90%) or life (10%)
+                                if (Math.random() < 0.9) {
+                                    const droppedWumpa = new DroppedWumpa(dropX, dropY, dropZ);
+                                    scene.add(droppedWumpa);
+                                    console.log('Question box dropped: Wumpa (all gems collected)');
+                                } else {
+                                    const droppedLife = new DroppedLife(dropX, dropY, dropZ);
+                                    scene.add(droppedLife);
+                                    console.log('Question box dropped: Extra Life (all gems collected)');
+                                }
+                            }
                         }
 
                         toRemove.push(node);
@@ -325,10 +338,11 @@ export function checkDroppedLifeCollisions(scene) {
 
 /**
  * Checks every dropped_gem node in the scene against the character's bounding box.
- * Collected gems are removed and the wumpa score is incremented by 5.
+ * Collected gems are removed and their types are returned so the HUD can be updated.
+ * @returns {string[]} Array of collected gem type names (e.g. 'gem_purple').
  */
 export function checkDroppedGemCollisions(scene) {
-    if (!window.character.mesh) return;
+    if (!window.character.mesh) return [];
 
     const charPos = window.character.mesh.position;
     const characterHitbox = new THREE.Box3(
@@ -346,13 +360,13 @@ export function checkDroppedGemCollisions(scene) {
         }
     });
 
-    let gemsCollected = 0;
+    const collectedTypes = [];
     toRemove.forEach((node) => {
         node.parent?.remove(node);
         gemSound.start();
-        gemsCollected++;
-        console.log('Gem collected!');
+        collectedTypes.push(node.userData.gemType);
+        console.log(`Gem collected: ${node.userData.gemType}`);
     });
 
-    return gemsCollected;
+    return collectedTypes;
 }

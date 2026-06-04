@@ -59,8 +59,9 @@ const _materialsNewLife = [
 // Wumpa model scene — set externally via setWumpaModel() before calling initTile.
 let _wumpaModelCache = null;
 
-// Gem model scene — set externally via setGemModel() before spawning gems.
-let _gemModelCache = null;
+// Gem model scenes — one cache entry per gem colour, parsed from the GLB.
+const GEM_TYPES = ['gem_blue', 'gem_green', 'gem_purple', 'gem_red', 'gem_yellow'];
+const _gemModelCaches = {};
 
 // New Life model scene — set externally via setNewLifeModel() before spawning dropped lives.
 let _newLifeModelCache = null;
@@ -217,13 +218,43 @@ export function setWumpaModel(model) {
 }
 
 /**
- * Injects the pre-loaded gem GLTF scene so DroppedGem instances can clone it.
+ * Injects the pre-loaded gem GLB scene and parses out the five colour
+ * variants (gem_blue, gem_green, gem_purple, gem_red, gem_yellow).
  * Must be called before the first DroppedGem is constructed.
  *
- * @param {THREE.Object3D} model - The root scene from the gem GLTF.
+ * @param {THREE.Object3D} model - The root scene from the gem GLB.
  */
 export function setGemModel(model) {
-    _gemModelCache = model;
+    for (const name of GEM_TYPES) {
+        const found = model.getObjectByName(name);
+        if (found) {
+            _gemModelCaches[name] = found;
+        } else {
+            console.warn(`setGemModel: could not find child "${name}" in GLB`);
+        }
+    }
+}
+
+/**
+ * Returns one of the remaining gem type names at random.
+ * @returns {string|null} A gem type, or null if all gems have been collected.
+ */
+export function getRandomGemType() {
+    if (GEM_TYPES.length === 0) return null;
+    return GEM_TYPES[Math.floor(Math.random() * GEM_TYPES.length)];
+}
+
+/**
+ * Removes a gem colour from the available pool so it cannot drop again.
+ * Safe to call multiple times with the same type.
+ * @param {string} gemType - e.g. 'gem_purple'
+ */
+export function removeGemType(gemType) {
+    const idx = GEM_TYPES.indexOf(gemType);
+    if (idx !== -1) {
+        GEM_TYPES.splice(idx, 1);
+        console.log(`Gem pool updated — remaining: [${GEM_TYPES.join(', ')}]`);
+    }
 }
 
 /**
@@ -409,7 +440,7 @@ export class DroppedLife extends THREE.Object3D {
 /**
  * A gem drop spawned at an absolute world position when a question_box
  * is broken and the random roll selects a gem.
- * Uses the pre-loaded gem GLTF model (set via setGemModel()).
+ * Uses one of the five pre-loaded gem colour models (set via setGemModel()).
  * Named 'dropped_gem' — collected via dedicated collision logic.
  *
  * @extends THREE.Object3D
@@ -417,17 +448,25 @@ export class DroppedLife extends THREE.Object3D {
 export class DroppedGem extends THREE.Object3D {
 
     /**
-     * @param {number} x - World X position.
-     * @param {number} y - World Y position.
-     * @param {number} z - World Z position.
+     * @param {number} x        - World X position.
+     * @param {number} y        - World Y position.
+     * @param {number} z        - World Z position.
+     * @param {string} [gemType] - One of GEM_TYPES (e.g. 'gem_red').
+     *                             If omitted a random type is chosen.
      */
-    constructor(x, y, z) {
+    constructor(x, y, z, gemType) {
         super();
 
         this.name = 'dropped_gem';
 
-        const object = SkeletonUtils.clone(_gemModelCache);
-        object.scale.set(1.8, 1.8, 1.8);
+        // Pick a gem type (fall back to random if not provided or invalid)
+        const type = (gemType && _gemModelCaches[gemType])
+            ? gemType
+            : getRandomGemType();
+        this.userData.gemType = type;
+
+        const object = SkeletonUtils.clone(_gemModelCaches[type]);
+        object.scale.set(5, 5, 5);
         this.add(object);
 
         this.position.set(x, y, z);
