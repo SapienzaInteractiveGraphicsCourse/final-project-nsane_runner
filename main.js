@@ -6,6 +6,7 @@ import TWEEN from 'three/examples/jsm/libs/tween.module.js';
 import { moveCharacterForward } from './character_animations.js';
 import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel } from './map_generation.js';
 import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions } from './check_collisions.js';
+import { removeGemType } from './objects.js';
 import { Crash, AkuAku } from './characters.js';
 import { isPaused } from './game_management.js';
 import { settings } from './settings.js';
@@ -17,7 +18,10 @@ import hudHtml from './hud.html?raw';
 (function initHud() {
     const container = document.createElement('div');
     container.innerHTML = hudHtml.trim();
-    document.body.appendChild(container.firstElementChild);
+    // Inject all root-level elements (the #hud bar AND the #gem-tracker)
+    while (container.firstElementChild) {
+        document.body.appendChild(container.firstElementChild);
+    }
 })();
 
 // ---- HUD helpers (exposed globally so game modules can call them) ----
@@ -45,6 +49,28 @@ window.setHudBoxes = function (count) {
 window.setHudScore = function (score) {
     const el = document.getElementById('score-count');
     if (el) el.textContent = score.toLocaleString();
+};
+
+// Map gem_type names → HUD element IDs
+const GEM_HUD_MAP = {
+    gem_blue:   'hud-gem-blue',
+    gem_green:  'hud-gem-green',
+    gem_purple: 'hud-gem-purple',
+    gem_red:    'hud-gem-red',
+    gem_yellow: 'hud-gem-yellow',
+};
+
+/**
+ * Reveals a collected gem in the bottom tracker.
+ * @param {string} gemType - e.g. 'gem_purple'
+ */
+window.setHudGem = function (gemType) {
+    const id = GEM_HUD_MAP[gemType];
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('collected')) {
+        el.classList.add('collected');
+    }
 };
 
 
@@ -97,12 +123,12 @@ function loadAssets() {
         character.load(loader),
         AkuAku.load(loader),
         loadGLTF('/wumpa/scene.gltf'),
-        loadGLTF('/gem/scene.gltf'),
+        loadGLTF('/gem/gems.glb'),
         loadGLTF('/newlife/newlife.glb'),
         loadGLTF("/textures/grass/rock_sphere.glb"),
         loadGLTF("/textures/grass/cassa/scene.gltf"),
         loadGLTF("/textures/grass/totem.glb"),
-    ]).then(([, , wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf]) => ({ wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
+    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf]) => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
 }
 
 
@@ -124,11 +150,11 @@ function waitForPlay() {
 // 2. Wait for the player to click Play.
 // 3. Inject the wumpa model, generate the map, add the character, and start.
 loadAssets()
-    .then(({ wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }) => {
+    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }) => {
         // Assets are ready — now wait for Play button before starting the game.
-        return waitForPlay().then(() => ({ wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
+        return waitForPlay().then(() => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
     })
-    .then(({ wumpaGltf, gemGltf, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }) => {
+    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }) => {
 
         // --- LIVES (from difficulty) ---
         window.lives = settings.maxLives;
@@ -138,7 +164,7 @@ loadAssets()
         setWumpaModel(wumpaGltf.scene);
 
         // --- GEM ---
-        setGemModel(gemGltf.scene);
+        setGemModel(gemGlb.scene);
 
         // --- NEW LIFE ---
         setNewLifeModel(newLifeGltf.scene);
@@ -181,44 +207,46 @@ loadAssets()
 function animate() {
     requestAnimationFrame(animate);
 
-    if (isPaused) return;
+    if (!isPaused) {
+        // Update active Tweens
+        TWEEN.update();
 
-    // Update active Tweens
-    TWEEN.update();
-
-    // Check wumpa fruit collisions
-    wumpaScore = checkWumpaCollisions(scene, wumpaScore);
-    // Check box collisions
-    checkBoxCollisions(scene);
-    // Check dropped life (crash-face) collisions
-    checkDroppedLifeCollisions(scene);
+        // Check wumpa fruit collisions
+        wumpaScore = checkWumpaCollisions(scene, wumpaScore);
+        // Check box collisions
+        checkBoxCollisions(scene);
+        // Check dropped life (crash-face) collisions
+        checkDroppedLifeCollisions(scene);
 
 
-    // TODO: MODIFY THIS PART, I WANT TO COLLECT ALL THE GEMS IN THE HUD!
-    // Check dropped gem collisions
-    const gemsCollected = checkDroppedGemCollisions(scene);
-    if (gemsCollected > 0) {
-        // Each gem is worth 5 wumpa fruits
-        // TODO: MODIFY THIS PART, I WANT TO COLLECT ALL THE GEMS IN THE HUD!
-        wumpaScore += gemsCollected * 5;
-        if (window.setHudWumpa) window.setHudWumpa(wumpaScore);
-    }
+        // Check dropped gem collisions — returns an array of gem type strings
+        const collectedGems = checkDroppedGemCollisions(scene);
+        for (const gemType of collectedGems) {
+            // Reveal this gem colour in the bottom HUD tracker
+            if (window.setHudGem) window.setHudGem(gemType);
+            // Remove from the droppable pool so it can’t spawn again
+            removeGemType(gemType);
+            // Each gem is also worth 5 wumpa fruits
+            wumpaScore += 5;
+            if (window.setHudWumpa) window.setHudWumpa(wumpaScore);
+        }
 
-    // --- SCORE & SPEED HUD ---
-    if (window.character.mesh) {
-        const score = settings.computeScore(wumpaScore, window.brokenBoxes || 0);
-        if (window.setHudScore) window.setHudScore(score);
-        // TODO: Adjust if (window.setHudSpeed) window.setHudSpeed(settings.currentSpeed);
-    }
+        // --- SCORE & SPEED HUD ---
+        if (window.character.mesh) {
+            const score = settings.computeScore(wumpaScore, window.brokenBoxes || 0);
+            if (window.setHudScore) window.setHudScore(score);
+            // TODO: Adjust if (window.setHudSpeed) window.setHudSpeed(settings.currentSpeed);
+        }
 
-    // Keep camera glued to the character
-    if (window.character.mesh) {
-        camera.position.x = window.character.mesh.position.x - 11;
-        camera.position.y = window.character.mesh.position.y + 14;
-        camera.position.z = window.character.mesh.position.z;
+        // Keep camera glued to the character
+        if (window.character.mesh) {
+            camera.position.x = window.character.mesh.position.x - 11;
+            camera.position.y = window.character.mesh.position.y + 14;
+            camera.position.z = window.character.mesh.position.z;
 
-        camera.lookAt(window.character.mesh.position);
-        controls.target.copy(window.character.mesh.position);
+            camera.lookAt(window.character.mesh.position);
+            controls.target.copy(window.character.mesh.position);
+        }
     }
 
     controls.update();
