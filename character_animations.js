@@ -2,9 +2,102 @@ import TWEEN from 'three/examples/jsm/libs/tween.module.js';
 import * as THREE from 'three';
 import { settings } from './settings.js';
 import { removeTiles } from './map_generation.js';
+import { Sound } from './sounds.js';
+
+const spinSound = new Sound('spinSound.wav');
 
 // Array to store active movement tweens so they can be stopped if necessary
 export var characterMovingAnimationTweens = [];
+
+// =========================================================================
+//  CANONICAL REST POSE — captured once from the model's original bone state
+// =========================================================================
+
+/**
+ * Captures the model's original bone rotations/positions as the canonical
+ * rest pose. Must be called exactly once, before any animation starts.
+ * Stores the result on `character._canonicalRestPose`.
+ */
+function captureCanonicalRestPose(character) {
+    if (character._canonicalRestPose) return; // already captured
+
+    const mesh = character.mesh;
+    const get = (name) => mesh.getObjectByName(name);
+
+    const leftLeg1  = get("leg1_45");
+    const leftLeg2  = get("leg2_44");
+    const leftFoot  = get("foot_43");
+    const leftToe   = get("toe_42");
+    const rightLeg1 = get("leg1001_49");
+    const rightLeg2 = get("leg2001_48");
+    const rightFoot = get("foot001_47");
+    const rightToe  = get("toe001_46");
+    const leftArm1  = get("arm1_27");
+    const leftArm2  = get("arm2_26");
+    const rightArm1 = get("arm1001_40");
+    const rightArm2 = get("arm2001_39");
+    const body      = get("body_41");
+    const rootJoint = get("GLTF_created_0_rootJoint");
+
+    character._canonicalRestPose = {
+        lL1: leftLeg1  ? leftLeg1.rotation.clone()  : null,
+        lL2: leftLeg2  ? leftLeg2.rotation.clone()  : null,
+        lF:  leftFoot  ? leftFoot.rotation.clone()  : null,
+        lT:  leftToe   ? leftToe.rotation.clone()   : null,
+        rL1: rightLeg1 ? rightLeg1.rotation.clone() : null,
+        rL2: rightLeg2 ? rightLeg2.rotation.clone() : null,
+        rF:  rightFoot ? rightFoot.rotation.clone() : null,
+        rT:  rightToe  ? rightToe.rotation.clone()  : null,
+        lA1: leftArm1  ? leftArm1.rotation.clone()  : null,
+        lA2: leftArm2  ? leftArm2.rotation.clone()  : null,
+        rA1: rightArm1 ? rightArm1.rotation.clone() : null,
+        rA2: rightArm2 ? rightArm2.rotation.clone() : null,
+        bodyPosY: body      ? body.position.y       : 0,
+        rootY:    rootJoint ? rootJoint.rotation.y   : 0,
+    };
+}
+
+/**
+ * Resets every animated bone back to the canonical rest pose.
+ * Safe to call at any time — idempotent.
+ */
+function resetToCanonicalPose(character) {
+    const rest = character._canonicalRestPose;
+    if (!rest) return;
+
+    const mesh = character.mesh;
+    const get = (name) => mesh.getObjectByName(name);
+
+    const leftLeg1  = get("leg1_45");
+    const leftLeg2  = get("leg2_44");
+    const leftFoot  = get("foot_43");
+    const leftToe   = get("toe_42");
+    const rightLeg1 = get("leg1001_49");
+    const rightLeg2 = get("leg2001_48");
+    const rightFoot = get("foot001_47");
+    const rightToe  = get("toe001_46");
+    const leftArm1  = get("arm1_27");
+    const leftArm2  = get("arm2_26");
+    const rightArm1 = get("arm1001_40");
+    const rightArm2 = get("arm2001_39");
+    const body      = get("body_41");
+    const rootJoint = get("GLTF_created_0_rootJoint");
+
+    if (leftLeg1)  leftLeg1.rotation.copy(rest.lL1);
+    if (leftLeg2)  leftLeg2.rotation.copy(rest.lL2);
+    if (leftFoot)  leftFoot.rotation.copy(rest.lF);
+    if (leftToe)   leftToe.rotation.copy(rest.lT);
+    if (rightLeg1) rightLeg1.rotation.copy(rest.rL1);
+    if (rightLeg2) rightLeg2.rotation.copy(rest.rL2);
+    if (rightFoot) rightFoot.rotation.copy(rest.rF);
+    if (rightToe)  rightToe.rotation.copy(rest.rT);
+    if (leftArm1)  leftArm1.rotation.copy(rest.lA1);
+    if (leftArm2)  leftArm2.rotation.copy(rest.lA2);
+    if (rightArm1) rightArm1.rotation.copy(rest.rA1);
+    if (rightArm2) rightArm2.rotation.copy(rest.rA2);
+    if (body)      body.position.y = rest.bodyPosY;
+    if (rootJoint) rootJoint.rotation.y = rest.rootY;
+}
 
 export function getCharacterSpeed() {
     return settings.currentSpeed;
@@ -50,6 +143,26 @@ export function moveCharacterForward(character, scene, camera) {
 
 
 export function characterWalkAnimation(character) {
+    // --- Capture the canonical rest pose exactly once (first call only) ---
+    captureCanonicalRestPose(character);
+
+    // --- Stop & clean up any previous walk tweens ---
+    if (character.walkTween) {
+        character.walkTween.stop();
+        const idx1 = characterMovingAnimationTweens.indexOf(character.walkTween);
+        if (idx1 !== -1) characterMovingAnimationTweens.splice(idx1, 1);
+        character.walkTween = null;
+    }
+    if (character.armWalkTween) {
+        character.armWalkTween.stop();
+        const idx2 = characterMovingAnimationTweens.indexOf(character.armWalkTween);
+        if (idx2 !== -1) characterMovingAnimationTweens.splice(idx2, 1);
+        character.armWalkTween = null;
+    }
+
+    // --- Reset all bones to the canonical rest pose before starting ---
+    resetToCanonicalPose(character);
+
     const leftLeg1 = character.mesh.getObjectByName("leg1_45");
     const leftLeg2 = character.mesh.getObjectByName("leg2_44");
     const leftFoot = character.mesh.getObjectByName("foot_43");      // left foot
@@ -69,26 +182,9 @@ export function characterWalkAnimation(character) {
     const body = character.mesh.getObjectByName("body_41");      // upper body / spine
 
     // =========================================================================
-    //  SAVE INITIAL (REST) POSE
+    //  USE CANONICAL REST POSE (always the true original, never a mid-anim snapshot)
     // =========================================================================
-    const rest = {
-        // Legs
-        lL1: leftLeg1 ? leftLeg1.rotation.clone() : null,
-        lL2: leftLeg2 ? leftLeg2.rotation.clone() : null,
-        lF: leftFoot ? leftFoot.rotation.clone() : null,
-        lT: leftToe ? leftToe.rotation.clone() : null,
-        rL1: rightLeg1 ? rightLeg1.rotation.clone() : null,
-        rL2: rightLeg2 ? rightLeg2.rotation.clone() : null,
-        rF: rightFoot ? rightFoot.rotation.clone() : null,
-        rT: rightToe ? rightToe.rotation.clone() : null,
-        // Arms
-        lA1: leftArm1 ? leftArm1.rotation.clone() : null,
-        lA2: leftArm2 ? leftArm2.rotation.clone() : null,
-        rA1: rightArm1 ? rightArm1.rotation.clone() : null,
-        rA2: rightArm2 ? rightArm2.rotation.clone() : null,
-        // Torso (position only — no rotation to avoid axis-misalignment tilt)
-        bodyPosY: body ? body.position.y : 0,
-    };
+    const rest = character._canonicalRestPose;
 
     // =========================================================================
     //  ANIMATION PARAMETERS
@@ -302,6 +398,7 @@ export function crashHit() {
     }
 
     character.isRotating = true;
+    spinSound.start();
 
     rotateCharacterAnimation(character);
 
@@ -432,27 +529,10 @@ function rotateCharacterAnimation(character) {
             if (rightArm2) rightArm2.rotation.y = savedPose.rightArm2Y * t;
         })
         .onComplete(() => {
-            // Reset root Y to avoid accumulated drift
-            if (rootJoint) rootJoint.rotation.y = savedPose.rootY;
+            // Reset every bone to the canonical rest pose (not the mid-walk snapshot)
+            resetToCanonicalPose(character);
 
-            // Snap all bones cleanly back
-            if (leftLeg) leftLeg.rotation.x = savedPose.leftLegX;
-            if (rightLeg) rightLeg.rotation.x = savedPose.rightLegX;
-            if (leftLeg2) leftLeg2.rotation.x = savedPose.leftLeg2X;
-            if (rightLeg2) rightLeg2.rotation.x = savedPose.rightLeg2X;
-            if (leftFoot) leftFoot.rotation.x = savedPose.leftFootX;
-            if (rightFoot) rightFoot.rotation.x = savedPose.rightFootX;
-            if (leftToe) leftToe.rotation.x = savedPose.leftToeX;
-            if (rightToe) rightToe.rotation.x = savedPose.rightToeX;
-            if (leftArm) leftArm.rotation.y = savedPose.leftArmY;
-            if (rightArm) rightArm.rotation.y = savedPose.rightArmY;
-            if (leftArm2) leftArm2.rotation.y = savedPose.leftArm2Y;
-            if (rightArm2) rightArm2.rotation.y = savedPose.rightArm2Y;
-            if (body) {
-                body.position.y = savedPose.bodyPosY;
-            }
-
-            // Unlock spin and restart run animation
+            // Unlock spin and restart the walk animation from a clean state
             character.isRotating = false;
             characterWalkAnimation(character);
         });

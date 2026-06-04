@@ -4,6 +4,17 @@ import { startup_akuaku_animation } from './objects_animations.js';
 import { gameOver } from './game_management.js';
 import { settings } from './settings.js';
 import { DroppedWumpa, DroppedLife, DroppedGem } from './objects.js';
+import { Sound } from './sounds.js';
+
+// ── Pre-instantiated sound effects (singletons) ──────────────────────────
+const wumpaSound = new Sound('wumpa.wav');
+const crateBreakSound = new Sound('crateBreak.wav');
+const akuakuSound = new Sound('akuaku.wav');
+const akuakuVanish = new Sound('akuaku_vanish.wav');
+const gemSound = new Sound('gemSound.wav');
+const lifeSound = new Sound('life.wav');
+const nitroSound = new Sound('nitro.wav');
+const gameOverSound = new Sound('woah.wav');
 
 /**
  * Checks every wumpa_fruit in the scene against the character's bounding box.
@@ -33,6 +44,7 @@ export function checkWumpaCollisions(scene, wumpascore) {
     toRemove.forEach((node) => {
         node.parent?.remove(node);
         wumpascore++;
+        wumpaSound.start();
         console.log(`Wumpa collected! Score: ${wumpascore}`);
     });
 
@@ -64,6 +76,7 @@ export function checkBoxCollisions(scene) {
                     if (window.character.isRotating) {
                         // --- SPIN ATTACK: break the box ---
                         console.log(`${node.name} broken!`);
+                        crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
                         if (window.setHudBoxes) window.setHudBoxes(window.brokenBoxes);
 
@@ -80,12 +93,14 @@ export function checkBoxCollisions(scene) {
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
+                            akuakuVanish.start();
                             console.log("Aku Aku protected you!");
                             toRemove.push(node);
                         } else {
                             window.lives = Math.max(0, (window.lives || 3) - 1);
                             if (window.setHudLives) window.setHudLives(window.lives);
                             if (window.lives <= 0) {
+                                gameOverSound.start();
                                 gameOver();
                             } else {
                                 console.log(`Hit by box! Lives remaining: ${window.lives}`);
@@ -99,40 +114,28 @@ export function checkBoxCollisions(scene) {
                     if (window.character.isRotating) {
                         // --- SPIN ATTACK: break the box ---
                         console.log(`${node.name} broken!`);
+                        crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
                         if (window.setHudBoxes) window.setHudBoxes(window.brokenBoxes);
                         // spawn aku aku
                         if (!window.akuaku || !window.akuaku.mesh) {
                             const akuaku = new AkuAku();
                             if (akuaku.mesh) {
-                                // --- PARENTING ---
-                                // akuaku.mesh is added as a child of character.mesh so it
-                                // automatically inherits all of Crash's position, lane slides,
-                                // and jumps — no manual coordinate transforms needed.
 
-                                // Local position relative to Crash's own space:
-                                //   X = -1.5  → slightly behind Crash (travel direction is +X)
-                                //   Y =  3.5  → floating above Crash's head
-                                //   Z =  1.2  → offset to one side
-                                akuaku.mesh.position.set(-1.5, 3.5, 1.2);
+                                akuaku.mesh.position.set(-2.5, 3.5, 1.2);
 
-                                // Most GLTF models face their own local +Z by default.
-                                // Crash travels along world +X, so rotating the mask by
-                                // -90° around Y aligns its +Z with the character's +X (forward).
                                 akuaku.mesh.rotation.y = -Math.PI / 2;
 
                                 akuaku.mesh.scale.set(0.004, 0.004, 0.004);
 
-                                // Parent to character mesh — Aku Aku now follows Crash automatically
                                 window.character.mesh.add(akuaku.mesh);
                                 window.akuaku = akuaku;
 
                                 startup_akuaku_animation(akuaku.mesh); // ROTATE AKU AKU WHEN IT SPAWNS
 
+                                akuakuSound.start();
                             }
                         }
-
-                        // TODO: ADD SOUND EFFECT
 
                         toRemove.push(node);
                     } else {
@@ -140,12 +143,14 @@ export function checkBoxCollisions(scene) {
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
+                            akuakuVanish.start();
                             console.log("Aku Aku protected you!");
                             toRemove.push(node);
                         } else {
                             window.lives = Math.max(0, (window.lives || 3) - 1);
                             if (window.setHudLives) window.setHudLives(window.lives);
                             if (window.lives <= 0) {
+                                gameOverSound.start();
                                 gameOver();
                             } else {
                                 console.log(`Hit by box! Lives remaining: ${window.lives}`);
@@ -156,22 +161,23 @@ export function checkBoxCollisions(scene) {
                 }
             } else if (node.name === 'nitro_box') {
                 if (characterHitbox.intersectsBox(node.userData.hitbox)) {
+                    nitroSound.start();
                     if (window.akuaku && window.akuaku.mesh) {
                         window.character.mesh.remove(window.akuaku.mesh);
                         window.akuaku = null;
+                        akuakuVanish.start();
                         console.log("Aku Aku protected you!");
                         toRemove.push(node);
                     } else {
                         window.lives = Math.max(0, (window.lives || 3) - 1);
                         if (window.setHudLives) window.setHudLives(window.lives);
                         if (window.lives <= 0) {
+                            gameOverSound.start();
                             gameOver();
                         } else {
                             console.log(`Hit by nitro! Lives remaining: ${window.lives}`);
                             toRemove.push(node);
                         }
-
-                        // TODO: ADD SOUND EFFECT
                     }
 
                 }
@@ -180,6 +186,7 @@ export function checkBoxCollisions(scene) {
                     if (window.character.isRotating) {
                         // --- SPIN ATTACK: break the box ---
                         console.log(`${node.name} broken!`);
+                        crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
                         if (window.setHudBoxes) window.setHudBoxes(window.brokenBoxes);
 
@@ -191,19 +198,19 @@ export function checkBoxCollisions(scene) {
                         scene.add(droppedLife);
 
                         toRemove.push(node);
-
-                        // TODO: ADD SOUND EFFECT
                     } else {
                         // --- NO SPIN: take damage ---
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
+                            akuakuVanish.start();
                             console.log("Aku Aku protected you!");
                             toRemove.push(node);
                         } else {
                             window.lives = Math.max(0, (window.lives || 3) - 1);
                             if (window.setHudLives) window.setHudLives(window.lives);
                             if (window.lives <= 0) {
+                                gameOverSound.start();
                                 gameOver();
                             } else {
                                 console.log(`Hit by box! Lives remaining: ${window.lives}`);
@@ -217,15 +224,17 @@ export function checkBoxCollisions(scene) {
                     if (window.character.isRotating) {
                         // --- SPIN ATTACK: break the box ---
                         console.log(`${node.name} broken!`);
+                        crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
                         if (window.setHudBoxes) window.setHudBoxes(window.brokenBoxes);
 
                         // Randomly select one of three items to drop
-                        const dropX = charPos.x + 5;
+                        const dropX = charPos.x + 10;
                         const dropY = 1.5;
                         const dropZ = charPos.z;
 
-                        const roll = Math.random();
+                        // const roll = Math.random();
+                        let roll = 3;
                         if (roll < 1 / 3) {
                             // Drop 3–5 Wumpa Fruits fanned out along Z
                             const wumpaCount = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5
@@ -243,25 +252,25 @@ export function checkBoxCollisions(scene) {
                         } else {
                             // Drop a Crash Gem
                             const droppedGem = new DroppedGem(dropX, dropY, dropZ);
-                            droppedGem.scale.set(0.05, 0.05, 0.05);
+                            droppedGem.scale.set(1, 1, 1);
                             scene.add(droppedGem);
                             console.log('Question box dropped: Gem');
                         }
 
                         toRemove.push(node);
-
-                        // TODO: ADD SOUND EFFECT
                     } else {
                         // --- NO SPIN: take damage ---
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
+                            akuakuVanish.start();
                             console.log("Aku Aku protected you!");
                             toRemove.push(node);
                         } else {
                             window.lives = Math.max(0, (window.lives || 3) - 1);
                             if (window.setHudLives) window.setHudLives(window.lives);
                             if (window.lives <= 0) {
+                                gameOverSound.start();
                                 gameOver();
                             } else {
                                 console.log(`Hit by box! Lives remaining: ${window.lives}`);
@@ -305,6 +314,7 @@ export function checkDroppedLifeCollisions(scene) {
 
     toRemove.forEach((node) => {
         node.parent?.remove(node);
+        lifeSound.start();
         const maxLives = settings.maxLives;
         window.lives = Math.min(maxLives, (window.lives || 0) + 1);
         if (window.setHudLives) window.setHudLives(window.lives);
@@ -339,6 +349,7 @@ export function checkDroppedGemCollisions(scene) {
     let gemsCollected = 0;
     toRemove.forEach((node) => {
         node.parent?.remove(node);
+        gemSound.start();
         gemsCollected++;
         console.log('Gem collected!');
     });

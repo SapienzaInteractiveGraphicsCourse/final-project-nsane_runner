@@ -10,21 +10,28 @@
 [x] SOLVE STARTUP BUG, THE GAME KEEPS RUNNING EVEN IF ENTER IS NOT PRESSED
 [x] modify running animation
 [x] add ? block and drop mechanism
+[x] REDESIGN SCORE HUD
+[x] redesign animations of running + solve bugs of animation
+[x] design traps out of carreggiata
+[x] implement sounds
+[x] improve objects generation algorithm
 
-MUST DO
-[ ] design traps out of carreggiata
-[ ] TODO METTERE UNA TEXTURE QUI
-[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE)
-[ ] REDESIGN SCORE HUD
-[ ] redesign animations of running + solve bugs of animation
+
+TO DO TODAY
+
 
 
 BUG
 [ ] il gioco quando è in pausa non si blocca *
-[ ] add level 2 aku aku (godmod)
+
+
+MUST DO
+[ ] TODO METTERE UNA TEXTURE QUI
+[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE)
+[ ] add main menu soundtrack
 
 
 OPTINAL
 [ ] add cortex 
-[ ] improve objects generation algorithm
+[ ] add level 2 aku aku (godmod)
 [ ] character follow mouse animation

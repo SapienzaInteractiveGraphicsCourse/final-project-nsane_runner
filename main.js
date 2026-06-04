@@ -47,15 +47,13 @@ window.setHudScore = function (score) {
     if (el) el.textContent = score.toLocaleString();
 };
 
-window.setHudSpeed = function (speed) {
-    const el = document.getElementById('speed-count');
-    if (el) el.textContent = Math.round(speed);
-};
+
+
 
 // ---- THREE.js scene setup ----
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-camera.position.set(-5, 15, 0);
+camera.position.set(-11, 14, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -215,8 +213,8 @@ function animate() {
 
     // Keep camera glued to the character
     if (window.character.mesh) {
-        camera.position.x = window.character.mesh.position.x - 5;
-        camera.position.y = window.character.mesh.position.y + 15;
+        camera.position.x = window.character.mesh.position.x - 11;
+        camera.position.y = window.character.mesh.position.y + 14;
         camera.position.z = window.character.mesh.position.z;
 
         camera.lookAt(window.character.mesh.position);

@@ -101,45 +101,68 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
             // --- ZONA STRADA ---
             if (isRoad) {
                 if (j === centerJ) {
-                    // La strada è larga 15 (meshSize). Dividiamola in 3 corsie da 5.
-                    // Centro = 0, Sinistra = -5, Destra = 5
-                    const laneOffset = meshSize / 3;
-                    const subLanes = [-laneOffset, 0, laneOffset];
+                    // Gestiamo lo spawn solo nelle righe designate (Inizio, Metà, Fine)
+                    if (i === rowStart || i === rowMid || i === rowEnd) {
 
-                    let roadObjects = []; // Array che conterrà gli oggetti per questa riga
+                        // La strada è larga 15 (meshSize). Dividiamola in 3 corsie da 5.
+                        const laneOffset = meshSize / 3;
+                        const subLanes = [-laneOffset, 0, laneOffset]; // [-5, 0, 5]
 
-                    if (i === rowStart) {
-                        const isUp = Math.random() >= 0.5;
-                        const type = isUp ? "standard_box_up" : "standard_box";
+                        let roadObjects = []; // Array per gli oggetti di questa riga
 
-                        // ESEMPIO 1: Spawna una cassa in una corsia a caso tra le 3
-                        const randomLaneZ = subLanes[Math.floor(Math.random() * 3)];
-                        roadObjects.push({ type: type, offsetZ: randomLaneZ });
+                        // 1. DECIDI QUANTI OGGETTI SPAWNARE (Da 0 a 3)
+                        // Puoi regolare queste percentuali per bilanciare la difficoltà
+                        // const randCount = Math.random();
+                        // let numObjects = 0;
 
-                        // (Se volessi due casse, potresti fare due .push() con offset diversi)
-                    }
-                    else if (i === rowMid) {
-                        const isQuestionBlock = Math.random() >= 0.5;
-                        const isUp = Math.random() >= 0.5;
-                        let type;
-                        if (isQuestionBlock) {
-                            type = isUp ? "question_box_up" : "question_box";
-                        } else {
-                            type = isUp ? "burubuga_box_up" : "burubuga_box";
+                        // if (randCount < 0.15) numObjects = 0; // 15% di chance: Riga vuota
+                        // else if (randCount < 0.60) numObjects = 1; // 45% di chance: 1 Oggetto
+                        // else if (randCount < 0.90) numObjects = 3; // 30% di chance: 2 Oggetti
+
+                        let numObjects = 3; // 10% di chance: 3 Oggetti (Muro)
+
+                        // 2. SELEZIONA LE CORSIE IN MODO CASUALE SENZA RIPETIZIONI
+                        // Mescoliamo l'array delle corsie e prendiamo solo i primi 'numObjects' elementi
+                        const shuffledLanes = [...subLanes].sort(() => Math.random() - 0.5);
+                        const selectedLanes = shuffledLanes.slice(0, numObjects);
+
+                        // FUNZIONE HELPER: Genera un tipo di cassa casuale in base a dei pesi
+                        function getRandomBoxType() {
+                            const types = ["standard", "question", "burubuga", "nitro"];
+                            const weights = [0.40, 0.30, 0.20, 0.10]; // Somma = 1.0 (40%, 30%, 20%, 10%)
+
+                            let r = Math.random();
+                            let chosenType = "standard";
+                            let sum = 0;
+
+                            for (let t = 0; t < types.length; t++) {
+                                sum += weights[t];
+                                if (r <= sum) {
+                                    chosenType = types[t];
+                                    break;
+                                }
+                            }
+
+                            // La cassa Nitro di solito non ha una variante "up" (alta) nei runner
+                            if (chosenType === "nitro") {
+                                return "nitro_box";
+                            }
+
+                            // Per le altre casse, decide se spawnano a terra o fluttuanti (_up)
+                            const isUp = Math.random() >= 0.5;
+                            return isUp ? `${chosenType}_box_up` : `${chosenType}_box`;
                         }
 
-                        // ESEMPIO 2: Spawna sempre al centro
-                        roadObjects.push({ type: type, offsetZ: 0 });
-                    }
-                    else if (i === rowEnd) {
-                        // ESEMPIO 3: Spawna un muro di Nitro lasciando libera solo la corsia centrale
-                        roadObjects.push({ type: "nitro_box", offsetZ: -laneOffset }); // Sinistra
-                        roadObjects.push({ type: "nitro_box", offsetZ: laneOffset });  // Destra
-                    }
+                        // 3. SPAWNA GLI OGGETTI NELLE CORSIE SELEZIONATE
+                        selectedLanes.forEach(offsetZ => {
+                            const type = getRandomBoxType();
+                            roadObjects.push({ type: type, offsetZ: offsetZ });
+                        });
 
-                    // Se abbiamo generato qualcosa, salviamo l'array nella matrice
-                    if (roadObjects.length > 0) {
-                        mat[i][j] = roadObjects;
+                        // Se abbiamo generato qualcosa, lo salviamo nella matrice logica
+                        if (roadObjects.length > 0) {
+                            mat[i][j] = roadObjects;
+                        }
                     }
                 }
             }
@@ -185,122 +208,6 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
 }
 
 
-// function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition, totalCols, sideColsLeft) {
-//     // On the very first tile, don't spawn any objects so the player has a
-//     // clear runway to start running.
-//     if (isFirstTile) return;
-
-//     const rows = mat.length;
-//     const cols = mat[0].length;
-
-//     // We calculate lanes dynamically in case you change it later
-//     const lanes = totalCols - sideColsLeft * 2;
-
-//     // Height offset for floating ("_up") boxes — elevated above a grounded box
-//     const FLOAT_HEIGHT = 3;
-
-//     for (let i = 0; i < rows; i++) {
-//         for (let j = 0; j < cols; j++) {
-//             const cell = mat[i][j];
-
-//             if (cell === 0) continue; // Skip empty cells
-
-//             // --- Determine if this column is part of the road ---
-//             const isRoad = (j >= sideColsLeft && j < sideColsLeft + lanes);
-
-//             if (isRoad) {
-//                 // --- ROAD OBJECTS ---
-//                 // The box / wumpa constructors expect a lane col index (0,1,2)
-//                 // where col=1 is center (Z = 0). With a single lane, we force it to 1.
-//                 const laneCol = 1; // Center lane
-
-//                 // Strip the "_up" suffix to determine the base type
-//                 const isUp = cell.endsWith('_up');
-//                 const baseType = isUp ? cell.replace('_up', '') : cell;
-
-//                 let obj = null;
-
-//                 switch (baseType) {
-//                     case 'standard_box':
-//                         obj = new StandardBox(meshSize, i, laneCol, cumulativePosition);
-//                         break;
-//                     case 'nitro_box':
-//                         obj = new NitroBox(meshSize, i, laneCol, cumulativePosition);
-//                         break;
-//                     case 'burubuga_box':
-//                         obj = new BurubugaBox(meshSize, i, laneCol, cumulativePosition);
-//                         break;
-//                     case 'question_box':
-//                         obj = new QuestionBox(meshSize, i, laneCol, cumulativePosition);
-//                         break;
-//                     case 'new_life':
-//                         obj = new NewLife(meshSize, i, laneCol, cumulativePosition);
-//                         break;
-//                     case 'wumpa_fruit':
-//                         obj = new WumpaFruit(meshSize, i, laneCol, cumulativePosition);
-//                         break;
-//                     default:
-//                         console.warn(`[initObjects] Unknown road object type: "${cell}"`);
-//                         break;
-//                 }
-
-//                 if (obj) {
-//                     // If "_up", raise the object so it floats above the ground
-//                     if (isUp) {
-//                         obj.position.y += FLOAT_HEIGHT;
-
-//                         // Update hitbox to match the new position (Crucial for collisions!)
-//                         if (obj.userData.hitbox) {
-//                             obj.userData.hitbox.min.y += FLOAT_HEIGHT;
-//                             obj.userData.hitbox.max.y += FLOAT_HEIGHT;
-//                         }
-//                     }
-//                     tile.add(obj);
-//                 }
-
-//             } else {
-//                 // --- SIDE DECORATION OBJECTS ---
-
-//                 // Absolute world X coordinate
-//                 let xPos = (i + cumulativePosition) * meshSize;
-
-//                 // Absolute world Z coordinate
-//                 // Torniamo a usare la griglia perfetta. Siccome initMatrix ha già 
-//                 // scelto attentamente le colonne (j), gli oggetti saranno 
-//                 // spaziati in automatico di multipli di meshSize (15 unità).
-//                 let zPos = (j - Math.floor(totalCols / 2)) * meshSize;
-
-//                 // Apply fine-tuned "comma point" offsets if provided in the matrix cell
-//                 if (typeof cell === 'object' && cell !== null) {
-//                     if (cell.offsetX) xPos += cell.offsetX;
-//                     if (cell.offsetZ) zPos += cell.offsetZ;
-
-//                     // Optional: Add a tiny bit of random jitter so they don't look perfectly lined up
-//                     xPos += (Math.random() - 0.5) * 3;
-//                     zPos += (Math.random() - 0.5) * 3;
-//                 }
-
-//                 // Randomly pick one of the three decoration models
-//                 const roll = Math.random();
-//                 let decoration;
-
-//                 if (roll < 0.33) {
-//                     decoration = new Cassa(xPos, zPos);
-//                 } else if (roll < 0.66) {
-//                     decoration = new RockSphere(xPos, zPos);
-//                 } else {
-//                     decoration = new Totem(xPos, zPos);
-//                 }
-
-//                 if (decoration) {
-//                     decoration.position.y = 0;
-//                     tile.add(decoration);
-//                 }
-//             }
-//         }
-//     }
-// }
-
 export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition, totalCols, sideColsLeft) {
     // Nel primissimo tile non spawnare oggetti per dare al giocatore
     // un po' di spazio per iniziare a correre.
@@ -313,7 +220,7 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
     const lanes = totalCols - sideColsLeft * 2;
 
     // Altezza per le casse fluttuanti ("_up")
-    const FLOAT_HEIGHT = 3;
+    const FLOAT_HEIGHT = 7.75;
 
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
@@ -386,7 +293,9 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
 
                             // Aggiorniamo l'hitbox sull'asse Y
                             if (obj.userData.hitbox) {
-                                obj.userData.hitbox.min.y += FLOAT_HEIGHT;
+                                // Extend the hitbox downwards to make it easier to hit
+                                // but keep it above Crash's running height (max.y = 1.5)
+                                obj.userData.hitbox.min.y += 3.75;
                                 obj.userData.hitbox.max.y += FLOAT_HEIGHT;
                             }
                         }

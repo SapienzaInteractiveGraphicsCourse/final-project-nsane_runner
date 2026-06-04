@@ -10,13 +10,18 @@
     align-items: center;
     justify-content: space-between;
     pointer-events: none;
-    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, transparent 100%);
 }
 
 .hud-group {
     display: flex;
     align-items: center;
     gap: 20px;
+    flex: 1;
+}
+
+.hud-group:last-child {
+    justify-content: flex-end;
 }
 
 .hud-item {
@@ -40,6 +45,13 @@
     justify-content: center;
     font-size: 1.2rem;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.hud-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .hud-icon.wumpa {
@@ -57,10 +69,7 @@
     box-shadow: 0 0 10px rgba(60, 200, 220, 0.5);
 }
 
-.hud-icon.speed {
-    background: radial-gradient(circle at 35% 35%, #c084fc, #7c3aed);
-    box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
-}
+
 
 .hud-label {
     font-family: 'Outfit', sans-serif;
@@ -81,10 +90,19 @@
     color: #ffffff;
 }
 
-.hud-value.wumpa-val { color: #ffd26b; }
-.hud-value.lives-val  { color: #ff8fa3; }
-.hud-value.boxes-val  { color: #64dfdf; }
-.hud-value.speed-val  { color: #c084fc; }
+.hud-value.wumpa-val {
+    color: #ffd26b;
+}
+
+.hud-value.lives-val {
+    color: #ff8fa3;
+}
+
+.hud-value.boxes-val {
+    color: #64dfdf;
+}
+
+
 
 /* ---------- CENTRE SCORE ---------- */
 .hud-score-group {
@@ -116,9 +134,17 @@
 
 /* Pop animation when a counter changes */
 @keyframes counter-pop {
-    0%   { transform: scale(1); }
-    40%  { transform: scale(1.4); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    40% {
+        transform: scale(1.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .pop {
