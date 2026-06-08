@@ -22,36 +22,36 @@ function captureCanonicalRestPose(character) {
     const mesh = character.mesh;
     const get = (name) => mesh.getObjectByName(name);
 
-    const leftLeg1  = get("leg1_45");
-    const leftLeg2  = get("leg2_44");
-    const leftFoot  = get("foot_43");
-    const leftToe   = get("toe_42");
+    const leftLeg1 = get("leg1_45");
+    const leftLeg2 = get("leg2_44");
+    const leftFoot = get("foot_43");
+    const leftToe = get("toe_42");
     const rightLeg1 = get("leg1001_49");
     const rightLeg2 = get("leg2001_48");
     const rightFoot = get("foot001_47");
-    const rightToe  = get("toe001_46");
-    const leftArm1  = get("arm1_27");
-    const leftArm2  = get("arm2_26");
+    const rightToe = get("toe001_46");
+    const leftArm1 = get("arm1_27");
+    const leftArm2 = get("arm2_26");
     const rightArm1 = get("arm1001_40");
     const rightArm2 = get("arm2001_39");
-    const body      = get("body_41");
+    const body = get("body_41");
     const rootJoint = get("GLTF_created_0_rootJoint");
 
     character._canonicalRestPose = {
-        lL1: leftLeg1  ? leftLeg1.rotation.clone()  : null,
-        lL2: leftLeg2  ? leftLeg2.rotation.clone()  : null,
-        lF:  leftFoot  ? leftFoot.rotation.clone()  : null,
-        lT:  leftToe   ? leftToe.rotation.clone()   : null,
+        lL1: leftLeg1 ? leftLeg1.rotation.clone() : null,
+        lL2: leftLeg2 ? leftLeg2.rotation.clone() : null,
+        lF: leftFoot ? leftFoot.rotation.clone() : null,
+        lT: leftToe ? leftToe.rotation.clone() : null,
         rL1: rightLeg1 ? rightLeg1.rotation.clone() : null,
         rL2: rightLeg2 ? rightLeg2.rotation.clone() : null,
-        rF:  rightFoot ? rightFoot.rotation.clone() : null,
-        rT:  rightToe  ? rightToe.rotation.clone()  : null,
-        lA1: leftArm1  ? leftArm1.rotation.clone()  : null,
-        lA2: leftArm2  ? leftArm2.rotation.clone()  : null,
+        rF: rightFoot ? rightFoot.rotation.clone() : null,
+        rT: rightToe ? rightToe.rotation.clone() : null,
+        lA1: leftArm1 ? leftArm1.rotation.clone() : null,
+        lA2: leftArm2 ? leftArm2.rotation.clone() : null,
         rA1: rightArm1 ? rightArm1.rotation.clone() : null,
         rA2: rightArm2 ? rightArm2.rotation.clone() : null,
-        bodyPosY: body      ? body.position.y       : 0,
-        rootY:    rootJoint ? rootJoint.rotation.y   : 0,
+        bodyPosY: body ? body.position.y : 0,
+        rootY: rootJoint ? rootJoint.rotation.y : 0,
     };
 }
 
@@ -66,34 +66,34 @@ function resetToCanonicalPose(character) {
     const mesh = character.mesh;
     const get = (name) => mesh.getObjectByName(name);
 
-    const leftLeg1  = get("leg1_45");
-    const leftLeg2  = get("leg2_44");
-    const leftFoot  = get("foot_43");
-    const leftToe   = get("toe_42");
+    const leftLeg1 = get("leg1_45");
+    const leftLeg2 = get("leg2_44");
+    const leftFoot = get("foot_43");
+    const leftToe = get("toe_42");
     const rightLeg1 = get("leg1001_49");
     const rightLeg2 = get("leg2001_48");
     const rightFoot = get("foot001_47");
-    const rightToe  = get("toe001_46");
-    const leftArm1  = get("arm1_27");
-    const leftArm2  = get("arm2_26");
+    const rightToe = get("toe001_46");
+    const leftArm1 = get("arm1_27");
+    const leftArm2 = get("arm2_26");
     const rightArm1 = get("arm1001_40");
     const rightArm2 = get("arm2001_39");
-    const body      = get("body_41");
+    const body = get("body_41");
     const rootJoint = get("GLTF_created_0_rootJoint");
 
-    if (leftLeg1)  leftLeg1.rotation.copy(rest.lL1);
-    if (leftLeg2)  leftLeg2.rotation.copy(rest.lL2);
-    if (leftFoot)  leftFoot.rotation.copy(rest.lF);
-    if (leftToe)   leftToe.rotation.copy(rest.lT);
+    if (leftLeg1) leftLeg1.rotation.copy(rest.lL1);
+    if (leftLeg2) leftLeg2.rotation.copy(rest.lL2);
+    if (leftFoot) leftFoot.rotation.copy(rest.lF);
+    if (leftToe) leftToe.rotation.copy(rest.lT);
     if (rightLeg1) rightLeg1.rotation.copy(rest.rL1);
     if (rightLeg2) rightLeg2.rotation.copy(rest.rL2);
     if (rightFoot) rightFoot.rotation.copy(rest.rF);
-    if (rightToe)  rightToe.rotation.copy(rest.rT);
-    if (leftArm1)  leftArm1.rotation.copy(rest.lA1);
-    if (leftArm2)  leftArm2.rotation.copy(rest.lA2);
+    if (rightToe) rightToe.rotation.copy(rest.rT);
+    if (leftArm1) leftArm1.rotation.copy(rest.lA1);
+    if (leftArm2) leftArm2.rotation.copy(rest.lA2);
     if (rightArm1) rightArm1.rotation.copy(rest.rA1);
     if (rightArm2) rightArm2.rotation.copy(rest.rA2);
-    if (body)      body.position.y = rest.bodyPosY;
+    if (body) body.position.y = rest.bodyPosY;
     if (rootJoint) rootJoint.rotation.y = rest.rootY;
 }
 
@@ -351,8 +351,8 @@ export function jumpCharacterAnimation(character) {
     if (!character.mesh) return;
 
     // --- Configuration ---
-    const jumpHeight = 4;     // How high the character goes on the Y axis
-    const jumpDuration = 400; // Time in milliseconds to reach the apex
+    const jumpHeight = 6;     // How high the character goes on the Y axis
+    const jumpDuration = 550; // Time in milliseconds to reach the apex
 
     // 1. JUMP UP TWEEN
     // Quadratic.Out simulates gravity slowing the momentum as they reach the top

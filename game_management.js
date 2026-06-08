@@ -65,6 +65,17 @@ function initPauseMenu() {
     // ── Main Menu button ─────────────────────────────────────────────────
     document.getElementById('main-menu-btn').addEventListener('click', goToMainMenu);
 
+    // ── Hitbox toggle button ─────────────────────────────────────────────
+    document.getElementById('hitbox-btn').addEventListener('click', () => {
+        window.showHitboxes = !window.showHitboxes;
+        const btn = document.getElementById('hitbox-btn');
+        if (window.showHitboxes) {
+            btn.classList.add('hitbox-active');
+        } else {
+            btn.classList.remove('hitbox-active');
+        }
+    });
+
     pauseMenuInitialized = true;
 }
 

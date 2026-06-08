@@ -643,7 +643,6 @@ export class Gear extends THREE.Object3D {
 
         const object = SkeletonUtils.clone(_gearModelCache);
 
-        // Apply transformations FIRST (Added random rotation placeholder for visual variety)
         object.scale.set(5, 5, 5);
 
         // Process shadows, grounding, and matrix optimizations

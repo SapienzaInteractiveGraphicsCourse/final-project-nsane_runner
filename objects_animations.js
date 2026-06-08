@@ -256,22 +256,27 @@ export function startup_akuaku_animation(akuaku) {
 
 
 export function gear_animation(gear) {
-    // The gear translates across the width of the street (Z axis) from left to right.
-    // It rotates around the X axis to simulate rolling.
-    const TRANSLATE_SPEED = 2000; // ms to cross the street
-    const ROTATE_SPEED = 600;     // ms for one full rotation
+    const TRANSLATE_SPEED = 4000;
+    const ROTATE_SPEED = 600;
 
-    // 1. Translation: Move from left (-Z) to right (+Z)
-    // The gear starts at -8. We move it +16 to land exactly at +8 on the right side.
-    const position = { z: gear.position.z };
-    const translate = new TWEEN.Tween(position)
-        .to({ z: gear.position.z + 8.5 }, TRANSLATE_SPEED) // Move 16 units to the right
+    const startZ = gear.position.z;
+    const DISTANCE = 8.5;
+    const targetZ = startZ + DISTANCE;
+
+    const position = { z: startZ };
+
+    const translateRight = new TWEEN.Tween(position)
+        .to({ z: targetZ }, TRANSLATE_SPEED)
         .easing(TWEEN.Easing.Linear.None)
-        .onUpdate(() => { gear.position.z = position.z; })
-        // .yoyo(true) // Makes it go back and forth (ping-pong effect)
-        .repeat(Infinity);
+        .onUpdate(() => { gear.position.z = position.z; });
 
-    // 2. Rotation: Rotate around Y axis
+    const translateLeft = new TWEEN.Tween(position)
+        .to({ z: startZ }, TRANSLATE_SPEED)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate(() => { gear.position.z = position.z; });
+
+    translateRight.chain(translateLeft);
+    translateLeft.chain(translateRight);
     const rotation = { y: gear.rotation.y };
     const rotate = new TWEEN.Tween(rotation)
         .to({ y: gear.rotation.y + Math.PI * 2 }, ROTATE_SPEED)
@@ -280,9 +285,9 @@ export function gear_animation(gear) {
         .repeat(Infinity);
 
     registerTween(rotate);
-    registerTween(translate);
+    registerTween(translateRight);
+    registerTween(translateLeft);
 
-    // Start both tweens simultaneously
     rotate.start();
-    translate.start();
+    translateRight.start();
 }

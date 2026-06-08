@@ -23,12 +23,7 @@ const gameOverSound = new Sound('woah.wav');
 export function checkWumpaCollisions(scene, wumpascore) {
     if (!window.character.mesh) return;
 
-    // Build a Box3 around the character each frame (1×2×1 unit box)
-    const charPos = window.character.mesh.position;
-    const characterHitbox = new THREE.Box3(
-        new THREE.Vector3(charPos.x - 1, charPos.y - 0.5, charPos.z - 1),
-        new THREE.Vector3(charPos.x + 1, charPos.y + 1.5, charPos.z + 1)
-    );
+    const characterHitbox = window.character.get_hitbox();
 
     // Collect nodes to remove after traversal (avoid mutating mid-traverse)
     const toRemove = [];
@@ -59,12 +54,8 @@ export function checkWumpaCollisions(scene, wumpascore) {
 export function checkBoxCollisions(scene) {
     if (!window.character.mesh) return;
 
-    // Build a Box3 around the character each frame (1×2×1 unit box)
     const charPos = window.character.mesh.position;
-    const characterHitbox = new THREE.Box3(
-        new THREE.Vector3(charPos.x - 1, charPos.y - 0.5, charPos.z - 1),
-        new THREE.Vector3(charPos.x + 1, charPos.y + 1.5, charPos.z + 1)
-    );
+    const characterHitbox = window.character.get_hitbox();
 
     // Collect nodes to remove after traversal (avoid mutating mid-traverse)
     const toRemove = [];
@@ -309,11 +300,7 @@ export function checkBoxCollisions(scene) {
 export function checkDroppedLifeCollisions(scene) {
     if (!window.character.mesh) return;
 
-    const charPos = window.character.mesh.position;
-    const characterHitbox = new THREE.Box3(
-        new THREE.Vector3(charPos.x - 1, charPos.y - 0.5, charPos.z - 1),
-        new THREE.Vector3(charPos.x + 1, charPos.y + 1.5, charPos.z + 1)
-    );
+    const characterHitbox = window.character.get_hitbox();
 
     const toRemove = [];
 
@@ -344,11 +331,7 @@ export function checkDroppedLifeCollisions(scene) {
 export function checkDroppedGemCollisions(scene) {
     if (!window.character.mesh) return [];
 
-    const charPos = window.character.mesh.position;
-    const characterHitbox = new THREE.Box3(
-        new THREE.Vector3(charPos.x - 1, charPos.y - 0.5, charPos.z - 1),
-        new THREE.Vector3(charPos.x + 1, charPos.y + 1.5, charPos.z + 1)
-    );
+    const characterHitbox = window.character.get_hitbox();
 
     const toRemove = [];
 
@@ -374,26 +357,21 @@ export function checkDroppedGemCollisions(scene) {
 export function checkGearCollisions(scene) {
     if (!window.character.mesh) return;
 
-    const charPos = window.character.mesh.position;
-    const characterHitbox = new THREE.Box3(
-        new THREE.Vector3(charPos.x - 1, charPos.y - 0.5, charPos.z - 1),
-        new THREE.Vector3(charPos.x + 1, charPos.y + 1.5, charPos.z + 1)
-    );
+    const characterHitbox = window.character.get_hitbox();
 
     const toRemove = [];
 
+    const tempVector = new THREE.Vector3();
+
     scene.traverse((node) => {
         if (node.name === 'gear') {
-            // Gear is moving and rotating, so we calculate its hitbox dynamically
-            const gearHitbox = new THREE.Box3().setFromObject(node);
-            
-            // Apply a slight reduction to the hitbox to make collisions feel more forgiving
-            const expandBy = -0.5;
-            gearHitbox.expandByScalar(expandBy);
 
-            if (characterHitbox.intersectsBox(gearHitbox)) {
-                // Same logic as hitting a Nitro box
-                nitroSound.start(); // Re-use the explosion sound or use a metal crash sound if available
+            node.getWorldPosition(tempVector);
+            const gearHitbox = new THREE.Sphere(tempVector, node.userData.hitboxRadius);
+
+            if (characterHitbox.intersectsSphere(gearHitbox)) {
+                nitroSound.start();
+
                 if (window.akuaku && window.akuaku.mesh) {
                     window.character.mesh.remove(window.akuaku.mesh);
                     window.akuaku = null;
@@ -403,6 +381,7 @@ export function checkGearCollisions(scene) {
                 } else {
                     window.lives = Math.max(0, (window.lives || 3) - 1);
                     if (window.setHudLives) window.setHudLives(window.lives);
+
                     if (window.lives <= 0) {
                         gameOverSound.start();
                         gameOver();
@@ -417,5 +396,67 @@ export function checkGearCollisions(scene) {
 
     toRemove.forEach((node) => {
         node.parent?.remove(node);
+    });
+}
+
+// ── Hitbox visualisation helpers ──────────────────────────────────────────
+// Managed set of Box3Helper instances currently in the scene.
+const _hitboxHelpers = new Set();
+
+/**
+ * Creates or destroys Box3Helper wireframes for every active hitbox in
+ * the scene, controlled by the `window.showHitboxes` boolean flag.
+ *
+ * Call this once per frame from the game loop.
+ * @param {THREE.Scene} scene
+ */
+export function updateHitboxHelpers(scene) {
+    // --- Tear down previous frame's helpers (always, to keep in sync) ---
+    if (_hitboxHelpers.size > 0) {
+        for (const h of _hitboxHelpers) {
+            scene.remove(h);
+            if (h.geometry) h.geometry.dispose();
+            if (h.material) h.material.dispose();
+        }
+        _hitboxHelpers.clear();
+    }
+
+    if (!window.showHitboxes) return;
+
+    // --- Character hitbox (cyan) ---
+    if (window.character?.mesh) {
+        const charBox = window.character.get_hitbox();
+        const charHelper = new THREE.Box3Helper(charBox, 0x00ffff);
+        charHelper.name = '_hitbox_helper';
+        scene.add(charHelper);
+        _hitboxHelpers.add(charHelper);
+    }
+
+    // --- Object hitboxes (green for collectibles, red for hazards) ---
+    const hazardNames = new Set([
+        'nitro_box', 'gear', 'standard_box', 'burubuga_box', 'question_box', 'new_life'
+    ]);
+
+    scene.traverse((node) => {
+        if (node.name === '_hitbox_helper') return;
+
+        // Static / stored hitbox
+        if (node.userData?.hitbox) {
+            const color = hazardNames.has(node.name) ? 0xff3333 : 0x33ff33;
+            const helper = new THREE.Box3Helper(node.userData.hitbox, color);
+            helper.name = '_hitbox_helper';
+            scene.add(helper);
+            _hitboxHelpers.add(helper);
+        }
+
+        // Gear uses a dynamic hitbox (computed from the mesh each frame)
+        if (node.name === 'gear' && !node.userData?.hitbox) {
+            const gearBox = new THREE.Box3().setFromObject(node);
+            gearBox.expandByScalar(-0.5);
+            const helper = new THREE.Box3Helper(gearBox, 0xff3333);
+            helper.name = '_hitbox_helper';
+            scene.add(helper);
+            _hitboxHelpers.add(helper);
+        }
     });
 }

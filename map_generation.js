@@ -200,16 +200,101 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
         }
     }
 
-    // // Attempt to spawn a Wumpa streak in the road
-    // if (Math.random() < 0.7) { // 70% chance to have a streak per tile
-    //     const startLaneJ = startRoadJ + Math.floor(Math.random() * lanes);
-    //     const streakLength = 5 + Math.floor(Math.random() * 5); // Length between 5 and 9
-    //     const startRow = Math.floor(Math.random() * Math.max(1, rows - 5)); // Random start row
-
-    //     generateWumpaStreak(mat, startRow, streakLength, startLaneJ, startRoadJ, endRoadJ);
-    // }
+    // --- WUMPA STREAK SPAWNING ---
+    generateWumpaStreak(mat, rows, centerJ, meshSize);
 
     return mat;
+}
+
+
+
+const WUMPA_STREAK_CONFIG = {
+    // Probability that a Wumpa streak is spawned per tile (0.0 – 1.0)
+    streakChance: 0.80,
+
+    // Min / max number of Wumpa fruits in a single streak
+    minStreakLength: 5,
+    maxStreakLength: 10,
+
+    // If true, each subsequent Wumpa in the streak has a chance to shift
+    // to an adjacent sub-lane, creating a diagonal pickup path.
+    canSwitchLanesMidStreak: true,
+
+    // Probability (0.0 – 1.0) that each Wumpa shifts to an adjacent lane.
+    // Only used when canSwitchLanesMidStreak is true.
+    laneSwitchChance: 0.50,
+};
+
+
+/**
+ * Attempts to place a "Wumpa Streak" — a consecutive run of Wumpa fruits
+ * along the road rows of the tile matrix.
+ *
+ * The algorithm:
+ *  1. Roll against `streakChance` to decide whether to spawn at all.
+ *  2. Pick a random streak length between `minStreakLength` and `maxStreakLength`.
+ *  3. Choose a random starting sub-lane index (0 = left, 1 = center, 2 = right).
+ *  4. Choose a random starting row that leaves enough room for the streak.
+ *  5. For each row in the streak:
+ *     a. Skip the row if it already contains road objects (boxes, gears, etc.).
+ *     b. Optionally shift to an adjacent sub-lane (if `canSwitchLanesMidStreak`).
+ *     c. Place a wumpa_fruit entry in the matrix.
+ *
+ * @param {Array}  mat      - The tile's logic matrix (rows × totalCols).
+ * @param {number} rows     - Number of rows in the tile.
+ * @param {number} centerJ  - Column index of the road center in the matrix.
+ * @param {number} meshSize - World-space size of one grid cell.
+ */
+function generateWumpaStreak(mat, rows, centerJ, meshSize) {
+    const cfg = WUMPA_STREAK_CONFIG;
+
+    // 1. Roll the dice — should we spawn a streak on this tile?
+    if (Math.random() >= cfg.streakChance) return;
+
+    // 2. Determine streak length
+    const streakLength = cfg.minStreakLength +
+        Math.floor(Math.random() * (cfg.maxStreakLength - cfg.minStreakLength + 1));
+
+    // 3. Pick a random starting sub-lane (0 = left, 1 = center, 2 = right)
+    const laneOffset = meshSize / 3; // 5
+    const subLanes = [-laneOffset, 0, laneOffset]; // [-5, 0, 5]
+    let currentLaneIdx = Math.floor(Math.random() * subLanes.length);
+
+    // 4. Pick a random starting row that leaves room for the full streak.
+    //    Clamp so we don't exceed the tile boundary.
+    const maxStartRow = Math.max(0, rows - streakLength);
+    const startRow = Math.floor(Math.random() * (maxStartRow + 1));
+
+    // 5. Place Wumpas row by row
+    let placed = 0;
+    for (let r = startRow; r < rows && placed < streakLength; r++) {
+
+        // --- Avoid overwriting existing road objects (boxes, gears, etc.) ---
+        const existingCell = mat[r][centerJ];
+        if (existingCell !== 0) continue; // row already occupied — skip it
+
+        // --- Lane switching logic ---
+        if (cfg.canSwitchLanesMidStreak && placed > 0) {
+            if (Math.random() < cfg.laneSwitchChance) {
+                // Shift to a random *adjacent* lane
+                if (currentLaneIdx === 0) {
+                    currentLaneIdx = 1;             // left  → center
+                } else if (currentLaneIdx === 2) {
+                    currentLaneIdx = 1;             // right → center
+                } else {
+                    // center → randomly left or right
+                    currentLaneIdx = Math.random() < 0.5 ? 0 : 2;
+                }
+            }
+        }
+
+        const offsetZ = subLanes[currentLaneIdx];
+
+        // Store as a road-object array (consistent with box spawning format)
+        mat[r][centerJ] = [{ type: "wumpa_fruit", offsetZ: offsetZ }];
+
+        placed++;
+    }
 }
 
 
@@ -309,7 +394,7 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                             if (obj.userData.hitbox) {
                                 // Extend the hitbox downwards to make it easier to hit
                                 // but keep it above Crash's running height (max.y = 1.5)
-                                obj.userData.hitbox.min.y += 3.75;
+                                obj.userData.hitbox.min.y += FLOAT_HEIGHT - 0.25;
                                 obj.userData.hitbox.max.y += FLOAT_HEIGHT;
                             }
                         }

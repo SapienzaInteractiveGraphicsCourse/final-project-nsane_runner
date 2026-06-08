@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 let _akuakuModelCache = null;
@@ -40,6 +41,19 @@ export class Crash {
      */
     get position() {
         return this.mesh ? this.mesh.position : { x: 0, y: 0, z: 0 };
+    }
+
+    /**
+     * Returns the character's bounding box/hitbox.
+     *
+     * @returns {THREE.Box3}
+     */
+    get_hitbox() {
+        const charPos = this.position;
+        return new THREE.Box3(
+            new THREE.Vector3(charPos.x - 1, charPos.y, charPos.z - 1),
+            new THREE.Vector3(charPos.x + 1, charPos.y + 5, charPos.z + 1)
+        );
     }
 
     /**

@@ -5,7 +5,7 @@ import { characterMovements } from './character_management.js';
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
 import { moveCharacterForward } from './character_animations.js';
 import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './map_generation.js';
-import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions, checkGearCollisions } from './check_collisions.js';
+import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions, checkGearCollisions, updateHitboxHelpers } from './check_collisions.js';
 import { removeGemType } from './objects.js';
 import { Crash, AkuAku } from './characters.js';
 import { isPaused } from './game_management.js';
@@ -97,6 +97,9 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
 scene.add(directionalLight);
 
+
+// Hitbox debug visualisation (toggled via the pause menu button)
+window.showHitboxes = false;
 
 // Wumpa collection score
 let wumpaScore = 0;
@@ -264,6 +267,9 @@ function animate() {
             if (window.setHudScore) window.setHudScore(score);
             // TODO: Adjust if (window.setHudSpeed) window.setHudSpeed(settings.currentSpeed);
         }
+
+        // Update hitbox debug visualisation
+        updateHitboxHelpers(scene);
 
         // Keep camera glued to the character
         if (window.character.mesh) {
