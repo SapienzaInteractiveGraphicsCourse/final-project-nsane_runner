@@ -4,11 +4,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { characterMovements } from './character_management.js';
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
 import { moveCharacterForward } from './character_animations.js';
-import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel } from './map_generation.js';
-import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions } from './check_collisions.js';
+import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './map_generation.js';
+import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions, checkGearCollisions } from './check_collisions.js';
 import { removeGemType } from './objects.js';
 import { Crash, AkuAku } from './characters.js';
 import { isPaused } from './game_management.js';
+import { startMainTheme } from './sounds.js';
 import { settings } from './settings.js';
 
 // ---- HUD: inject template + CSS (same pattern as pause.html / pause.css) ----
@@ -53,10 +54,10 @@ window.setHudScore = function (score) {
 
 // Map gem_type names → HUD element IDs
 const GEM_HUD_MAP = {
-    gem_blue:   'hud-gem-blue',
-    gem_green:  'hud-gem-green',
+    gem_blue: 'hud-gem-blue',
+    gem_green: 'hud-gem-green',
     gem_purple: 'hud-gem-purple',
-    gem_red:    'hud-gem-red',
+    gem_red: 'hud-gem-red',
     gem_yellow: 'hud-gem-yellow',
 };
 
@@ -128,15 +129,34 @@ function loadAssets() {
         loadGLTF("/textures/grass/rock_sphere.glb"),
         loadGLTF("/textures/grass/cassa/scene.gltf"),
         loadGLTF("/textures/grass/totem.glb"),
-    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf]) => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
+        loadGLTF("/gear/gear.glb")
+    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf]) => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }));
 }
 
 
 // --- WAIT FOR PLAY (menu selection) ---
 // Returns a Promise that resolves when the player clicks "Play Game"
 // after selecting character, map, and difficulty from the menu.
+// Also handles auto-restart: if nsane_restart is set in localStorage
+// (by the Restart / Play Again buttons), skip the splash screen and
+// resolve immediately using the previously saved selections.
 function waitForPlay() {
     return new Promise((resolve) => {
+        // ── Auto-restart path (skip splash) ──────────────────────────────
+        if (localStorage.getItem('nsane_restart') === 'true') {
+            localStorage.removeItem('nsane_restart');
+
+            // Hide the splash screen instantly
+            const splash = document.getElementById('splash-screen');
+            if (splash) splash.classList.add('hidden');
+
+            // Selections are still in localStorage from the original Play
+            settings.init();
+            resolve();
+            return;
+        }
+
+        // ── Normal path (wait for the player to click Play) ──────────────
         window.addEventListener('nsane-play', () => {
             // Initialise the Settings singleton from localStorage
             settings.init();
@@ -150,11 +170,11 @@ function waitForPlay() {
 // 2. Wait for the player to click Play.
 // 3. Inject the wumpa model, generate the map, add the character, and start.
 loadAssets()
-    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }) => {
+    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }) => {
         // Assets are ready — now wait for Play button before starting the game.
-        return waitForPlay().then(() => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }));
+        return waitForPlay().then(() => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }));
     })
-    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf }) => {
+    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }) => {
 
         // --- LIVES (from difficulty) ---
         window.lives = settings.maxLives;
@@ -178,6 +198,8 @@ loadAssets()
         // --- TOTEM
         setTotemModel(totemGltf.scene);
 
+        setGearModel(gearGltf.scene);
+
         // --- MAP ---
         // Generate the first batch of tiles (tile 0 is the safe starting platform).
         initTile(scene, 3);
@@ -192,6 +214,9 @@ loadAssets()
 
         // Initialize character movements keyboard listener
         characterMovements(character);
+
+        // Start the main theme music
+        startMainTheme();
 
         // Start the render / game loop
         animate();
@@ -215,6 +240,8 @@ function animate() {
         wumpaScore = checkWumpaCollisions(scene, wumpaScore);
         // Check box collisions
         checkBoxCollisions(scene);
+        // Check gear collisions
+        checkGearCollisions(scene);
         // Check dropped life (crash-face) collisions
         checkDroppedLifeCollisions(scene);
 

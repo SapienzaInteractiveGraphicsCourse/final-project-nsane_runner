@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, Cassa, RockSphere, Totem, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel } from './objects.js';
+import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, Cassa, RockSphere, Totem, Gear, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './objects.js';
+import { gear_animation } from './objects_animations.js';
 import { settings } from './settings.js';
 import { mat4 } from 'three/tsl';
 
@@ -11,7 +12,7 @@ export const activeTiles = [];
 let cumulativePosition = 0;
 
 // Re-export so callers (e.g. main.js) don't need to change their import path.
-export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel };
+export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel };
 
 export function initTile(scene, num) {
 
@@ -91,13 +92,13 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
     const rowStart = 0;
     const rowMid = Math.floor(rows / 2);
     const rowEnd = rows - 1;
+    const gearPosition = rowEnd;
     const meshSize = 15;
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < totalCols; j++) {
 
             const isRoad = (j >= startRoadJ && j <= endRoadJ);
 
-            // --- ZONA STRADA ---
             // --- ZONA STRADA ---
             if (isRoad) {
                 if (j === centerJ) {
@@ -119,45 +120,49 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
                         // else if (randCount < 0.60) numObjects = 1; // 45% di chance: 1 Oggetto
                         // else if (randCount < 0.90) numObjects = 3; // 30% di chance: 2 Oggetti
 
-                        let numObjects = 3; // 10% di chance: 3 Oggetti (Muro)
+                        if (i === gearPosition) {
+                            roadObjects.push({ type: "gear", offsetZ: -laneOffset });
+                        } else {
+                            let numObjects = 3; // 10% di chance: 3 Oggetti (Muro)
 
-                        // 2. SELEZIONA LE CORSIE IN MODO CASUALE SENZA RIPETIZIONI
-                        // Mescoliamo l'array delle corsie e prendiamo solo i primi 'numObjects' elementi
-                        const shuffledLanes = [...subLanes].sort(() => Math.random() - 0.5);
-                        const selectedLanes = shuffledLanes.slice(0, numObjects);
+                            // 2. SELEZIONA LE CORSIE IN MODO CASUALE SENZA RIPETIZIONI
+                            // Mescoliamo l'array delle corsie e prendiamo solo i primi 'numObjects' elementi
+                            const shuffledLanes = [...subLanes].sort(() => Math.random() - 0.5);
+                            const selectedLanes = shuffledLanes.slice(0, numObjects);
 
-                        // FUNZIONE HELPER: Genera un tipo di cassa casuale in base a dei pesi
-                        function getRandomBoxType() {
-                            const types = ["standard", "question", "burubuga", "nitro"];
-                            const weights = [0.40, 0.30, 0.20, 0.10]; // Somma = 1.0 (40%, 30%, 20%, 10%)
+                            // FUNZIONE HELPER: Genera un tipo di cassa casuale in base a dei pesi
+                            function getRandomBoxType() {
+                                const types = ["standard", "question", "burubuga", "nitro"];
+                                const weights = [0.40, 0.30, 0.20, 0.10]; // Somma = 1.0 (40%, 30%, 20%, 10%)
 
-                            let r = Math.random();
-                            let chosenType = "standard";
-                            let sum = 0;
+                                let r = Math.random();
+                                let chosenType = "standard";
+                                let sum = 0;
 
-                            for (let t = 0; t < types.length; t++) {
-                                sum += weights[t];
-                                if (r <= sum) {
-                                    chosenType = types[t];
-                                    break;
+                                for (let t = 0; t < types.length; t++) {
+                                    sum += weights[t];
+                                    if (r <= sum) {
+                                        chosenType = types[t];
+                                        break;
+                                    }
                                 }
+
+                                // La cassa Nitro di solito non ha una variante "up" (alta) nei runner
+                                if (chosenType === "nitro") {
+                                    return "nitro_box";
+                                }
+
+                                // Per le altre casse, decide se spawnano a terra o fluttuanti (_up)
+                                const isUp = Math.random() >= 0.5;
+                                return isUp ? `${chosenType}_box_up` : `${chosenType}_box`;
                             }
 
-                            // La cassa Nitro di solito non ha una variante "up" (alta) nei runner
-                            if (chosenType === "nitro") {
-                                return "nitro_box";
-                            }
-
-                            // Per le altre casse, decide se spawnano a terra o fluttuanti (_up)
-                            const isUp = Math.random() >= 0.5;
-                            return isUp ? `${chosenType}_box_up` : `${chosenType}_box`;
+                            // 3. SPAWNA GLI OGGETTI NELLE CORSIE SELEZIONATE
+                            selectedLanes.forEach(offsetZ => {
+                                const type = getRandomBoxType();
+                                roadObjects.push({ type: type, offsetZ: offsetZ });
+                            });
                         }
-
-                        // 3. SPAWNA GLI OGGETTI NELLE CORSIE SELEZIONATE
-                        selectedLanes.forEach(offsetZ => {
-                            const type = getRandomBoxType();
-                            roadObjects.push({ type: type, offsetZ: offsetZ });
-                        });
 
                         // Se abbiamo generato qualcosa, lo salviamo nella matrice logica
                         if (roadObjects.length > 0) {
@@ -272,6 +277,15 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                         case 'wumpa_fruit':
                             obj = new WumpaFruit(meshSize, i, laneCol, cumulativePosition);
                             break;
+                        case 'gear':
+                            const xPos = (i + cumulativePosition) * meshSize;
+                            // Farmost left point is roughly -10 or -12. 
+                            // Since offsetZ is added below, we subtract it here to ensure it lands exactly on -12.
+                            const startZ = -5 - offsetZ;
+                            obj = new Gear(xPos, startZ);
+                            // We attach a property so we know to animate it after it's fully placed
+                            obj.userData.isGear = true;
+                            break;
                         default:
                             console.warn(`[initObjects] Unknown road object type: "${cellType}"`);
                             break;
@@ -298,6 +312,11 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                                 obj.userData.hitbox.min.y += 3.75;
                                 obj.userData.hitbox.max.y += FLOAT_HEIGHT;
                             }
+                        }
+
+                        // Call animation for gear only after position.z is finalized
+                        if (obj.userData.isGear) {
+                            gear_animation(obj);
                         }
 
                         tile.add(obj);

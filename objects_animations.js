@@ -139,7 +139,7 @@ export function nitro_animation(box) {
  */
 export function dropped_item_animation(item) {
 
-    const BASE_Y    = item.position.y;
+    const BASE_Y = item.position.y;
     const POP_HEIGHT = 2.5;              // how high the item pops out
     const POP_UP_DUR = 300;              // ms for upward arc
     const POP_DOWN_DUR = 350;            // ms for landing
@@ -254,3 +254,35 @@ export function startup_akuaku_animation(akuaku) {
     sleep.start();
 }
 
+
+export function gear_animation(gear) {
+    // The gear translates across the width of the street (Z axis) from left to right.
+    // It rotates around the X axis to simulate rolling.
+    const TRANSLATE_SPEED = 2000; // ms to cross the street
+    const ROTATE_SPEED = 600;     // ms for one full rotation
+
+    // 1. Translation: Move from left (-Z) to right (+Z)
+    // The gear starts at -8. We move it +16 to land exactly at +8 on the right side.
+    const position = { z: gear.position.z };
+    const translate = new TWEEN.Tween(position)
+        .to({ z: gear.position.z + 8.5 }, TRANSLATE_SPEED) // Move 16 units to the right
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate(() => { gear.position.z = position.z; })
+        // .yoyo(true) // Makes it go back and forth (ping-pong effect)
+        .repeat(Infinity);
+
+    // 2. Rotation: Rotate around Y axis
+    const rotation = { y: gear.rotation.y };
+    const rotate = new TWEEN.Tween(rotation)
+        .to({ y: gear.rotation.y + Math.PI * 2 }, ROTATE_SPEED)
+        .easing(TWEEN.Easing.Linear.None)
+        .onUpdate(() => { gear.rotation.y = rotation.y; })
+        .repeat(Infinity);
+
+    registerTween(rotate);
+    registerTween(translate);
+
+    // Start both tweens simultaneously
+    rotate.start();
+    translate.start();
+}

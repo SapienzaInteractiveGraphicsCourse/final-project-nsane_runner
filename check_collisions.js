@@ -370,3 +370,52 @@ export function checkDroppedGemCollisions(scene) {
 
     return collectedTypes;
 }
+
+export function checkGearCollisions(scene) {
+    if (!window.character.mesh) return;
+
+    const charPos = window.character.mesh.position;
+    const characterHitbox = new THREE.Box3(
+        new THREE.Vector3(charPos.x - 1, charPos.y - 0.5, charPos.z - 1),
+        new THREE.Vector3(charPos.x + 1, charPos.y + 1.5, charPos.z + 1)
+    );
+
+    const toRemove = [];
+
+    scene.traverse((node) => {
+        if (node.name === 'gear') {
+            // Gear is moving and rotating, so we calculate its hitbox dynamically
+            const gearHitbox = new THREE.Box3().setFromObject(node);
+            
+            // Apply a slight reduction to the hitbox to make collisions feel more forgiving
+            const expandBy = -0.5;
+            gearHitbox.expandByScalar(expandBy);
+
+            if (characterHitbox.intersectsBox(gearHitbox)) {
+                // Same logic as hitting a Nitro box
+                nitroSound.start(); // Re-use the explosion sound or use a metal crash sound if available
+                if (window.akuaku && window.akuaku.mesh) {
+                    window.character.mesh.remove(window.akuaku.mesh);
+                    window.akuaku = null;
+                    akuakuVanish.start();
+                    console.log("Aku Aku protected you from the gear!");
+                    toRemove.push(node);
+                } else {
+                    window.lives = Math.max(0, (window.lives || 3) - 1);
+                    if (window.setHudLives) window.setHudLives(window.lives);
+                    if (window.lives <= 0) {
+                        gameOverSound.start();
+                        gameOver();
+                    } else {
+                        console.log(`Hit by gear! Lives remaining: ${window.lives}`);
+                        toRemove.push(node);
+                    }
+                }
+            }
+        }
+    });
+
+    toRemove.forEach((node) => {
+        node.parent?.remove(node);
+    });
+}

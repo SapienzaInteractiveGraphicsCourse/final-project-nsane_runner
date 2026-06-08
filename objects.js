@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { wumpa_animation, nitro_animation, dropped_item_animation } from './objects_animations.js';
+import { wumpa_animation, nitro_animation, dropped_item_animation, gear_animation } from './objects_animations.js';
 
 // Shared texture & material — loaded once, reused across all StandardBox instances.
 const _textureLoader = new THREE.TextureLoader();
@@ -74,6 +74,9 @@ let _rockSphereModelCache = null;
 
 // Totem model scene — set externally via setTotemModel() before spawning totems.
 let _totemModelCache = null;
+
+// Gear model scene - set externally via setGearModel() before spawning gears.
+let _gearModelCache = null;
 
 
 // --- BOX SIZE CONSTANTS ---
@@ -295,6 +298,16 @@ export function setRockSphereModel(model) {
  */
 export function setTotemModel(model) {
     _totemModelCache = model;
+}
+
+/**
+ * Injects the pre-loaded gear glb scene so Gear instances can clone it.
+ * Must be called before the first Gear is constructed.
+ *
+ * @param {THREE.Object3D} model - The root scene from the gear glb.
+ */
+export function setGearModel(model) {
+    _gearModelCache = model;
 }
 
 /**
@@ -619,5 +632,25 @@ export class Totem extends THREE.Object3D {
 
         this.matrixAutoUpdate = false;
         this.updateMatrix();
+    }
+}
+
+export class Gear extends THREE.Object3D {
+    constructor(xPos, zPos) {
+        super();
+
+        this.name = 'gear';
+
+        const object = SkeletonUtils.clone(_gearModelCache);
+
+        // Apply transformations FIRST (Added random rotation placeholder for visual variety)
+        object.scale.set(5, 5, 5);
+
+        // Process shadows, grounding, and matrix optimizations
+        setupStaticModel(object);
+
+        this.add(object);
+
+        this.position.set(xPos, 0, zPos);
     }
 }

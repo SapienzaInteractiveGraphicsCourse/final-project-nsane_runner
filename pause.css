@@ -51,26 +51,166 @@
     opacity: 0.8;
 }
 
-.pause-btn {
-    background: linear-gradient(90deg, #ff6600, #ff9900);
-    color: #fff;
-    font-family: 'Bangers', cursive;
-    font-size: 2rem;
-    border: none;
-    padding: 10px 40px;
-    border-radius: 50px;
-    cursor: pointer;
-    box-shadow: 0 5px 15px rgba(255, 102, 0, 0.4);
-    transition: all 0.2s ease;
-    text-transform: uppercase;
+/* ── Button row (inline pair) ──────────────────────────────────────────── */
+.pause-btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
-.pause-btn:hover {
+/* ── Shared base for ALL pause buttons ─────────────────────────────────── */
+.pause-btn {
+    font-family: 'Bangers', cursive;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    letter-spacing: 1px;
+}
+
+/* ── Toggle buttons (Music / SFX) ──────────────────────────────────────── */
+.pause-btn--toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 90px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(60,60,60,0.8), rgba(40,40,40,0.9));
+    border: 1.5px solid rgba(255, 153, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 1rem;
+    gap: 6px;
+}
+
+.pause-btn--toggle .btn-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.pause-btn--toggle .btn-label {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.pause-btn--toggle:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 18px rgba(255, 153, 0, 0.35);
+    border-color: #ff9900;
+    background: linear-gradient(145deg, rgba(80,60,30,0.8), rgba(50,40,20,0.9));
+}
+
+.pause-btn--toggle:active {
+    transform: translateY(1px);
+}
+
+/* Muted state — dimmed with a red tint */
+.pause-btn--toggle.muted {
+    border-color: rgba(255, 60, 60, 0.5);
+    background: linear-gradient(145deg, rgba(80,30,30,0.7), rgba(50,20,20,0.85));
+    opacity: 0.7;
+}
+
+.pause-btn--toggle.muted .btn-icon {
+    filter: grayscale(0.8);
+}
+
+/* ── Action buttons (Main Menu / Restart) ──────────────────────────────── */
+.pause-btn--action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 90px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(50,50,70,0.8), rgba(30,30,50,0.9));
+    border: 1.5px solid rgba(100, 140, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 1rem;
+    gap: 6px;
+}
+
+.pause-btn--action .btn-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.pause-btn--action .btn-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.pause-btn--action:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 18px rgba(100, 140, 255, 0.35);
+    border-color: rgba(130, 170, 255, 0.7);
+    background: linear-gradient(145deg, rgba(60,60,100,0.8), rgba(40,40,70,0.9));
+}
+
+.pause-btn--action:active {
+    transform: translateY(1px);
+}
+
+/* ── Primary resume button ─────────────────────────────────────────────── */
+.pause-btn--primary {
+    background: linear-gradient(90deg, #ff6600, #ff9900);
+    color: #fff;
+    font-size: 2rem;
+    padding: 10px 40px;
+    border-radius: 50px;
+    box-shadow: 0 5px 15px rgba(255, 102, 0, 0.4);
+    margin-top: 10px;
+}
+
+.pause-btn--primary:hover {
     transform: translateY(-3px) scale(1.05);
     box-shadow: 0 8px 20px rgba(255, 102, 0, 0.6);
     background: linear-gradient(90deg, #ff8800, #ffaa00);
 }
 
-.pause-btn:active {
+.pause-btn--primary:active {
+    transform: translateY(1px);
+}
+
+/* ── Retry / Play Again button (game over) ─────────────────────────────── */
+.pause-btn--retry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 90px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, rgba(40,80,40,0.85), rgba(25,55,25,0.95));
+    border: 1.5px solid rgba(80, 220, 80, 0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 1rem;
+    gap: 6px;
+}
+
+.pause-btn--retry .btn-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.pause-btn--retry .btn-label {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.pause-btn--retry:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 18px rgba(80, 220, 80, 0.4);
+    border-color: rgba(100, 255, 100, 0.7);
+    background: linear-gradient(145deg, rgba(50,100,50,0.85), rgba(35,70,35,0.95));
+}
+
+.pause-btn--retry:active {
     transform: translateY(1px);
 }

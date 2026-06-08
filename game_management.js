@@ -2,6 +2,10 @@ import './pause.css';
 import pauseHtml from './pause.html?raw';
 import gameOverHtml from './gameover.html?raw';
 import { pauseAllTweens, resumeAllTweens, stopAllTweens } from './tween_registry.js';
+import {
+    startMainTheme, toggleMainTheme, isMusicPlaying,
+    toggleSfx, isSfxEnabled, stopMainTheme
+} from './sounds.js';
 
 export let isPaused = false;
 export let isGameOver = false;
@@ -9,15 +13,58 @@ export let isGameOver = false;
 let pauseMenuInitialized = false;
 let gameOverMenuInitialized = false;
 
+/**
+ * Reload the page and return to the splash / main-menu screen.
+ */
+function goToMainMenu() {
+    stopAllTweens();
+    stopMainTheme();
+    localStorage.removeItem('nsane_restart');
+    location.reload();
+}
+
 function initPauseMenu() {
     if (pauseMenuInitialized) return;
     const container = document.createElement('div');
     container.innerHTML = pauseHtml.trim();
     document.body.appendChild(container.firstElementChild);
 
+    // ── Resume button ────────────────────────────────────────────────────
     document.getElementById('resume-btn').addEventListener('click', () => {
         if (isPaused) pauseGame();
     });
+
+    // ── Toggle Music button ──────────────────────────────────────────────
+    document.getElementById('toggle-music-btn').addEventListener('click', () => {
+        const playing = toggleMainTheme();
+        const btn = document.getElementById('toggle-music-btn');
+        const icon = document.getElementById('music-icon');
+        if (playing) {
+            btn.classList.remove('muted');
+            icon.textContent = '🎵';
+        } else {
+            btn.classList.add('muted');
+            icon.textContent = '🔇';
+        }
+    });
+
+    // ── Toggle SFX button ────────────────────────────────────────────────
+    document.getElementById('toggle-sfx-btn').addEventListener('click', () => {
+        const enabled = toggleSfx();
+        const btn = document.getElementById('toggle-sfx-btn');
+        const icon = document.getElementById('sfx-icon');
+        if (enabled) {
+            btn.classList.remove('muted');
+            icon.textContent = '🔊';
+        } else {
+            btn.classList.add('muted');
+            icon.textContent = '🔇';
+        }
+    });
+
+    // ── Main Menu button ─────────────────────────────────────────────────
+    document.getElementById('main-menu-btn').addEventListener('click', goToMainMenu);
+
     pauseMenuInitialized = true;
 }
 
@@ -47,11 +94,10 @@ function initGameOverMenu() {
     container.innerHTML = gameOverHtml.trim();
     document.body.appendChild(container.firstElementChild);
 
-    document.getElementById('retry-btn').addEventListener('click', () => {
-        // Stop and clear every remaining tween before reloading
-        stopAllTweens();
-        location.reload();
-    });
+
+    // ── Main Menu — go back to the splash screen ─────────────────────────
+    document.getElementById('gameover-menu-btn').addEventListener('click', goToMainMenu);
+
     gameOverMenuInitialized = true;
 }
 

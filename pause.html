@@ -2,6 +2,26 @@
     <div class="pause-modal">
         <h2 class="pause-title">GAME PAUSED</h2>
         <p class="pause-subtitle">Take a breather, Bandicoot!</p>
-        <button id="resume-btn" class="pause-btn">RESUME</button>
+
+        <!-- Row 1: Toggle Music & Toggle SFX -->
+        <div class="pause-btn-row">
+            <button id="toggle-music-btn" class="pause-btn pause-btn--toggle" title="Toggle Music">
+                <span class="btn-icon" id="music-icon">🎵</span>
+                <span class="btn-label">Music</span>
+            </button>
+            <button id="toggle-sfx-btn" class="pause-btn pause-btn--toggle" title="Toggle Sound Effects">
+                <span class="btn-icon" id="sfx-icon">🔊</span>
+                <span class="btn-label">SFX</span>
+            </button>
+        </div>
+
+        <!-- Row 2: Main Menu & Restart -->
+        <div class="pause-btn-row">
+            <button id="main-menu-btn" class="pause-btn pause-btn--action" title="Back to Main Menu">
+                <span class="btn-label">Main Menu</span>
+            </button>
+        </div>
+
+        <button id="resume-btn" class="pause-btn pause-btn--primary">RESUME</button>
     </div>
 </div>
