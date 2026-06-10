@@ -100,3 +100,68 @@ export class AkuAku {
         });
     }
 }
+
+export class Cortex {
+    constructor() {
+        /** @type {THREE.Object3D|null} The loaded 3D mesh for this character. */
+        this.mesh = null;
+
+        /** @type {Object} Named bone references populated after model load. */
+        this.bones = {};
+
+        /** Current lane index (used for lateral movement). */
+        this.currentPosition = 0;
+
+        /** Step size (world units) for vertical movement. */
+        this.verticalMovement = 5;
+
+        /** Step size (world units) for horizontal movement. */
+        this.horizontalMovement = 5;
+
+        /** Whether the character is currently mid-jump. */
+        this.isJumping = false;
+
+        /** Whether the character is currently rotating. */
+        this.isRotating = false;
+    }
+
+    /**
+     * Returns the character's world position.
+     * Falls back to the origin if the mesh hasn't been loaded yet.
+     *
+     * @returns {{ x: number, y: number, z: number }}
+     */
+    get position() {
+        return this.mesh ? this.mesh.position : { x: 0, y: 0, z: 0 };
+    }
+
+    /**
+     * Returns the character's bounding box/hitbox.
+     *
+     * @returns {THREE.Box3}
+     */
+    get_hitbox() {
+        const charPos = this.position;
+        return new THREE.Box3(
+            new THREE.Vector3(charPos.x - 1, charPos.y, charPos.z - 1),
+            new THREE.Vector3(charPos.x + 1, charPos.y + 5, charPos.z + 1)
+        );
+    }
+
+    /**
+     * Asynchronously loads the Cortex FBX model and assigns it to `this.mesh`.
+     *
+     * @param {FBXLoader} loader - A pre-configured FBXLoader instance.
+     * @returns {Promise<THREE.Object3D>} The loaded scene root.
+     */
+    load(loader) {
+        return new Promise((resolve, reject) => {
+            loader.load('/cortex/cortex.fbx', (fbx) => {
+                this.mesh = fbx;
+                this.mesh.scale.set(0.004, 0.004, 0.004);
+                this.mesh.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+                resolve(this.mesh);
+            }, undefined, reject);
+        });
+    }
+}

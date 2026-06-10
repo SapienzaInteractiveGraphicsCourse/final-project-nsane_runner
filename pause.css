@@ -156,6 +156,25 @@
     transform: translateY(1px);
 }
 
+/* ── Hitbox button active state (red when hitboxes are visible) ─────────── */
+.pause-btn--action.hitbox-active {
+    background: linear-gradient(145deg, rgba(160,30,30,0.85), rgba(100,15,15,0.95));
+    border-color: rgba(255, 60, 60, 0.7);
+    box-shadow: 0 4px 16px rgba(255, 50, 50, 0.45), inset 0 0 10px rgba(255, 50, 50, 0.15);
+    color: #fff;
+}
+
+.pause-btn--action.hitbox-active .btn-label {
+    color: #ff6b6b;
+    text-shadow: 0 0 6px rgba(255, 80, 80, 0.5);
+}
+
+.pause-btn--action.hitbox-active:hover {
+    box-shadow: 0 6px 22px rgba(255, 50, 50, 0.6), inset 0 0 14px rgba(255, 50, 50, 0.2);
+    border-color: rgba(255, 80, 80, 0.9);
+    background: linear-gradient(145deg, rgba(180,40,40,0.85), rgba(120,20,20,0.95));
+}
+
 /* ── Primary resume button ─────────────────────────────────────────────── */
 .pause-btn--primary {
     background: linear-gradient(90deg, #ff6600, #ff9900);

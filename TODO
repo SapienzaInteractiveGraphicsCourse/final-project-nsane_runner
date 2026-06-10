@@ -16,22 +16,26 @@
 [x] implement sounds
 [x] improve objects generation algorithm
 [x] il gioco quando è in pausa non si blocca
-
+[x] add main menu soundtrack
+[x] REDESIGN PAUSE MENU AND GAMEOVER MENU
+[x] add gear object
+[x] wumpa streak
+[x] fix gear hitbox
+[x] fix crash hitbox
+[x] ottimizzare il salto?
+[x] rendere visibili le hitbox?
 
 TO DO TODAY
-[ ] add main menu soundtrack
-[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE)
-
+[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE) CON GLI HANDLER PER IL PERSONAGGIO
+[ ] FIX GEAR HITBOX
 
 BUG
 
 MUST DO
-[ ] wumpa streak
-[ ] add gear object
 [ ] TODO METTERE UNA TEXTURE QUI
 
 
 OPTINAL
-[ ] add cortex 
+[x] add cortex 
 [ ] add level 2 aku aku (godmod)
 [ ] character follow mouse animation

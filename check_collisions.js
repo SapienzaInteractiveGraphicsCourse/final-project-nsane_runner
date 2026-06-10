@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { AkuAku } from './characters.js';
 import { startup_akuaku_animation } from './objects_animations.js';
 import { gameOver } from './game_management.js';
-import { settings } from './settings.js';
 import { DroppedWumpa, DroppedLife, DroppedGem, getRandomGemType } from './objects.js';
 import { Sound } from './sounds.js';
 
@@ -42,6 +41,20 @@ export function checkWumpaCollisions(scene, wumpascore) {
         wumpaSound.start();
         console.log(`Wumpa collected! Score: ${wumpascore}`);
     });
+
+    // 100-wumpa bonus: spawn a dropped life and reset counter
+    if (wumpascore >= 100) {
+        wumpascore = 0;
+        if (window.character?.mesh) {
+            const charPos = window.character.mesh.position;
+            const dropX = charPos.x + 7;
+            const dropY = 1.5;
+            const dropZ = charPos.z;
+            const droppedLife = new DroppedLife(dropX, dropY, dropZ);
+            scene.add(droppedLife);
+            console.log('100 Wumpas! Bonus life spawned.');
+        }
+    }
 
     // Update the HUD counter if any wumpas were collected
     if (toRemove.length > 0 && window.setHudWumpa) {
@@ -182,7 +195,7 @@ export function checkBoxCollisions(scene) {
                         if (window.setHudBoxes) window.setHudBoxes(window.brokenBoxes);
 
                         // Drop a crash-face life pickup slightly ahead of the character
-                        const dropX = charPos.x + 5;
+                        const dropX = charPos.x + 7;
                         const dropY = 1.5;
                         const dropZ = charPos.z;
                         const droppedLife = new DroppedLife(dropX, dropY, dropZ);
@@ -315,8 +328,7 @@ export function checkDroppedLifeCollisions(scene) {
     toRemove.forEach((node) => {
         node.parent?.remove(node);
         lifeSound.start();
-        const maxLives = settings.maxLives;
-        window.lives = Math.min(maxLives, (window.lives || 0) + 1);
+        window.lives = (window.lives || 0) + 1;
         if (window.setHudLives) window.setHudLives(window.lives);
         console.log(`1-Up collected! Lives: ${window.lives}`);
     });

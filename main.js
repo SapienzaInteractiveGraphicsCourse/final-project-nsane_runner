@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { characterMovements } from './character_management.js';
+import { CrashManagement, CortexManagement } from './character_management.js';
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
-import { moveCharacterForward } from './character_animations.js';
 import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './map_generation.js';
 import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions, checkGearCollisions, updateHitboxHelpers } from './check_collisions.js';
 import { removeGemType } from './objects.js';
-import { Crash, AkuAku } from './characters.js';
+import { Crash, Cortex, AkuAku } from './characters.js';
 import { isPaused } from './game_management.js';
 import { startMainTheme } from './sounds.js';
 import { settings } from './settings.js';
@@ -105,10 +105,17 @@ window.showHitboxes = false;
 let wumpaScore = 0;
 
 // Main character instance
-const character = new Crash();
+// const character = new Crash();
+const character = new Cortex();
 window.character = character;
 
+// Management instance (binds input + animations for the selected character)
+// const characterManager = new CrashManagement();
+const characterManager = new CortexManagement();
+
+//this code will have to be further optimized
 const loader = new GLTFLoader();
+const fbxLoader = new FBXLoader();
 
 /**
  * Loads all game assets in parallel using Promise.all.
@@ -124,7 +131,7 @@ function loadAssets() {
         new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
 
     return Promise.all([
-        character.load(loader),
+        character.load(fbxLoader),
         AkuAku.load(loader),
         loadGLTF('/wumpa/scene.gltf'),
         loadGLTF('/gem/gems.glb'),
@@ -213,10 +220,10 @@ loadAssets()
         controls.target.set(0, 1, 0);
 
         // Start the forward movement animation
-        moveCharacterForward(window.character, scene, camera);
+        characterManager.animations.moveCharacterForward(window.character, scene, camera);
 
         // Initialize character movements keyboard listener
-        characterMovements(character);
+        characterManager.characterMovements(character);
 
         // Start the main theme music
         startMainTheme();
@@ -291,5 +298,3 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
-// animate() is now called inside the bootstrap chain after Play is pressed.

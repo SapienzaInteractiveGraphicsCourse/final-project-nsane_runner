@@ -1,0 +1,11 @@
+Model Information:
+* title:	Caja Metal(Inspired from Crash Bandicoot)
+* source:	https://sketchfab.com/3d-models/caja-metalinspired-from-crash-bandicoot-2a8d221fa6884a78b121e34b0945a062
+* author:	RedPandaFox (https://sketchfab.com/RedPandaFox)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Caja Metal(Inspired from Crash Bandicoot)" (https://sketchfab.com/3d-models/caja-metalinspired-from-crash-bandicoot-2a8d221fa6884a78b121e34b0945a062) by RedPandaFox (https://sketchfab.com/RedPandaFox) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

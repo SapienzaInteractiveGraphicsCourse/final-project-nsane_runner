@@ -132,9 +132,8 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
 
                             // FUNZIONE HELPER: Genera un tipo di cassa casuale in base a dei pesi
                             function getRandomBoxType() {
-                                const types = ["standard", "question", "burubuga", "nitro"];
-                                const weights = [0.40, 0.30, 0.20, 0.10]; // Somma = 1.0 (40%, 30%, 20%, 10%)
-
+                                const types = ["standard", "question", "new_life", "burubuga", "nitro"];
+                                const weights = [0.40, 0.20, 0.20, 0.10, 0.10];
                                 let r = Math.random();
                                 let chosenType = "standard";
                                 let sum = 0;
@@ -227,19 +226,6 @@ const WUMPA_STREAK_CONFIG = {
 
 
 /**
- * Attempts to place a "Wumpa Streak" — a consecutive run of Wumpa fruits
- * along the road rows of the tile matrix.
- *
- * The algorithm:
- *  1. Roll against `streakChance` to decide whether to spawn at all.
- *  2. Pick a random streak length between `minStreakLength` and `maxStreakLength`.
- *  3. Choose a random starting sub-lane index (0 = left, 1 = center, 2 = right).
- *  4. Choose a random starting row that leaves enough room for the streak.
- *  5. For each row in the streak:
- *     a. Skip the row if it already contains road objects (boxes, gears, etc.).
- *     b. Optionally shift to an adjacent sub-lane (if `canSwitchLanesMidStreak`).
- *     c. Place a wumpa_fruit entry in the matrix.
- *
  * @param {Array}  mat      - The tile's logic matrix (rows × totalCols).
  * @param {number} rows     - Number of rows in the tile.
  * @param {number} centerJ  - Column index of the road center in the matrix.
@@ -356,7 +342,7 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                         case 'question_box':
                             obj = new QuestionBox(meshSize, i, laneCol, cumulativePosition);
                             break;
-                        case 'new_life':
+                        case 'new_life_box':
                             obj = new NewLife(meshSize, i, laneCol, cumulativePosition);
                             break;
                         case 'wumpa_fruit':
