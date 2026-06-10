@@ -1,42 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NSANE-RUNNER — Crash Bandicoot Endless Runner</title>
-    <meta name="description" content="An endless runner game inspired by Crash Bandicoot. Choose your character, map, and difficulty and run!">
+    <meta name="description"
+        content="An endless runner game inspired by Crash Bandicoot. Choose your character and difficulty and run!">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;600;700;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
 
-    <!-- ===== SPLASH / MENU SCREEN ===== -->
     <div id="splash-screen">
         <div class="splash-glow-ring"></div>
 
         <div class="menu-wrapper">
 
-            <!-- HEADER -->
             <header class="menu-header">
                 <p class="splash-subtitle">Bandicoot Edition</p>
                 <h1 class="splash-title">NSANE<br>RUNNER</h1>
                 <div class="splash-divider"></div>
             </header>
 
-            <!-- CHARACTER SELECTION -->
+            <div class="mesh-placeholder" id="character-mesh-container">
+                [ 3D Character Mesh Viewport ]
+            </div>
+
             <section class="menu-section" id="section-character">
-                <h2 class="menu-section-title">
-                    <span class="section-icon">🎮</span> Choose Your Character
-                </h2>
                 <div class="menu-cards" id="character-cards">
                     <button class="menu-card" data-group="character" data-value="crash" id="card-crash">
                         <div class="card-icon-wrap crash-icon">
                             <span class="card-emoji">🦊</span>
                         </div>
                         <span class="card-name">Crash Bandicoot</span>
-                        <span class="card-desc">The original hero</span>
                         <div class="card-check">✓</div>
                     </button>
                     <button class="menu-card" data-group="character" data-value="cortex" id="card-cortex">
@@ -44,98 +45,103 @@
                             <span class="card-emoji">🧪</span>
                         </div>
                         <span class="card-name">Dr. Neo Cortex</span>
-                        <span class="card-desc">The mad scientist</span>
                         <div class="card-check">✓</div>
                     </button>
                 </div>
             </section>
 
-            <!-- MAP SELECTION -->
-            <section class="menu-section" id="section-map">
-                <h2 class="menu-section-title">
-                    <span class="section-icon">🗺️</span> Choose Your Map
-                </h2>
-                <div class="menu-cards menu-cards--triple" id="map-cards">
-                    <button class="menu-card" data-group="map" data-value="beach" id="card-beach">
-                        <div class="card-icon-wrap beach-icon">
-                            <span class="card-emoji">🏖️</span>
-                        </div>
-                        <span class="card-name">N. Sanity Beach</span>
-                        <span class="card-desc">Tropical paradise</span>
-                        <div class="card-check">✓</div>
-                    </button>
-                    <button class="menu-card" data-group="map" data-value="temple" id="card-temple">
-                        <div class="card-icon-wrap temple-icon">
-                            <span class="card-emoji">🏛️</span>
-                        </div>
-                        <span class="card-name">Temple Ruins</span>
-                        <span class="card-desc">Ancient mysteries</span>
-                        <div class="card-check">✓</div>
-                    </button>
-                    <button class="menu-card" data-group="map" data-value="cortexpower" id="card-cortexpower">
-                        <div class="card-icon-wrap power-icon">
-                            <span class="card-emoji">⚡</span>
-                        </div>
-                        <span class="card-name">Cortex Power</span>
-                        <span class="card-desc">Industrial danger</span>
-                        <div class="card-check">✓</div>
-                    </button>
-                </div>
-            </section>
-
-            <!-- DIFFICULTY SELECTION -->
             <section class="menu-section" id="section-difficulty">
-                <h2 class="menu-section-title">
-                    <span class="section-icon">⚙️</span> Difficulty
-                </h2>
                 <div class="menu-cards menu-cards--triple" id="difficulty-cards">
                     <button class="menu-card card--easy" data-group="difficulty" data-value="easy" id="card-easy">
-                        <div class="card-icon-wrap easy-icon">
-                            <span class="card-emoji">😊</span>
-                        </div>
                         <span class="card-name">Easy</span>
-                        <span class="card-desc">Relaxed pace</span>
                         <div class="card-check">✓</div>
                     </button>
                     <button class="menu-card card--medium" data-group="difficulty" data-value="medium" id="card-medium">
-                        <div class="card-icon-wrap medium-icon">
-                            <span class="card-emoji">😤</span>
-                        </div>
                         <span class="card-name">Medium</span>
-                        <span class="card-desc">Balanced challenge</span>
                         <div class="card-check">✓</div>
                     </button>
-                    <button class="menu-card card--hard" data-group="difficulty" data-value="hard" id="card-hard">
-                        <div class="card-icon-wrap hard-icon">
-                            <span class="card-emoji">💀</span>
-                        </div>
-                        <span class="card-name">Hard</span>
-                        <span class="card-desc">N. Sane mode!</span>
+                    <button class="menu-card card--hard" data-group="difficulty" data-value="nsane" id="card-hard">
+                        <span class="card-name">N. Sane!</span>
                         <div class="card-check">✓</div>
                     </button>
                 </div>
             </section>
 
-            <!-- VALIDATION ERROR -->
+            <button class="commands-btn" id="btn-commands">
+                📖 How to Play
+            </button>
+
             <p class="menu-error hidden" id="menu-error">
-                ⚠️ Please select a character, map, and difficulty before playing!
+                ⚠️ Please complete your selections before playing!
             </p>
 
-            <!-- PLAY BUTTON -->
             <button class="play-btn" id="play-btn">
                 <span class="play-btn-text">Play Game</span>
                 <span class="play-btn-icon">▶</span>
             </button>
 
-    </div><!-- /.menu-wrapper -->
-    </div><!-- /#splash-screen -->
+        </div>
+    </div>
+
+    <!-- ═══════ HOW TO PLAY MODAL ═══════ -->
+    <div id="commands-overlay" class="hidden">
+        <div class="commands-modal">
+            <button class="commands-close" id="commands-close-btn">&times;</button>
+
+            <h2 class="commands-title">HOW TO PLAY</h2>
+            <p class="commands-subtitle">Master the controls to survive!</p>
+
+            <div class="commands-grid">
+                <!-- Jump -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>W</kbd><kbd>Space</kbd><kbd>↑</kbd>
+                    </div>
+                    <span class="command-action">Jump</span>
+                </div>
+
+                <!-- Move Left -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>A</kbd><kbd>←</kbd>
+                    </div>
+                    <span class="command-action">Move Left</span>
+                </div>
+
+                <!-- Move Right -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>D</kbd><kbd>→</kbd>
+                    </div>
+                    <span class="command-action">Move Right</span>
+                </div>
+
+                <!-- Attack -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>🖱 Left Click</kbd>
+                    </div>
+                    <span class="command-action">Attack</span>
+                </div>
+
+                <!-- Pause -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>Esc</kbd>
+                    </div>
+                    <span class="command-action">Pause Game</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="/main.js"></script>
 
     <script>
         // ---- MENU SELECTION LOGIC ----
-        (function() {
-            const selections = { character: null, map: null, difficulty: null };
+        (function () {
+            // Removed 'map' from the selections state
+            const selections = { character: null, difficulty: null };
 
             // Handle card clicks
             document.querySelectorAll('.menu-card').forEach(card => {
@@ -153,7 +159,7 @@
                     selections[group] = value;
 
                     // Hide error message if all selections are made
-                    if (selections.character && selections.map && selections.difficulty) {
+                    if (selections.character && selections.difficulty) {
                         document.getElementById('menu-error').classList.add('hidden');
                     }
                 });
@@ -161,30 +167,52 @@
 
             // Play button handler
             document.getElementById('play-btn').addEventListener('click', () => {
-                if (!selections.character || !selections.map || !selections.difficulty) {
+                // Removed map validation
+                if (!selections.character || !selections.difficulty) {
                     const errEl = document.getElementById('menu-error');
                     errEl.classList.remove('hidden');
                     // Shake animation
                     errEl.classList.remove('shake');
-                    void errEl.offsetWidth;
+                    void errEl.offsetWidth; // Trigger reflow to restart animation
                     errEl.classList.add('shake');
                     return;
                 }
 
                 // Save selections to localStorage
                 localStorage.setItem('nsane_character', selections.character);
-                localStorage.setItem('nsane_map', selections.map);
                 localStorage.setItem('nsane_difficulty', selections.difficulty);
+
+                // Clean up old map data just in case it's lingering in the browser
+                localStorage.removeItem('nsane_map');
 
                 // Dispatch a custom event so main.js can pick it up
                 window.dispatchEvent(new CustomEvent('nsane-play'));
 
-                // Fade out splash screen
-                const splash = document.getElementById('splash-screen');
-                if (splash) splash.classList.add('hidden');
+                // Splash screen will be hidden by main.js after assets finish loading
+            });
+
+            // Commands button handler
+            document.getElementById('btn-commands').addEventListener('click', () => {
+                const modal = document.getElementById('commands-overlay');
+                if (modal) modal.classList.remove('hidden');
+            });
+
+            // Close commands modal
+            document.getElementById('commands-close-btn')?.addEventListener('click', () => {
+                document.getElementById('commands-overlay')?.classList.add('hidden');
+            });
+
+            // Close on backdrop click
+            document.getElementById('commands-overlay')?.addEventListener('click', (e) => {
+                if (e.target.id === 'commands-overlay') {
+                    e.target.classList.add('hidden');
+                }
             });
         })();
     </script>
-</body>
-</html>
 
+
+
+</body>
+
+</html>

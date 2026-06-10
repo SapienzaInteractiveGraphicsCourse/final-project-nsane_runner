@@ -24,18 +24,17 @@
 [x] fix crash hitbox
 [x] ottimizzare il salto?
 [x] rendere visibili le hitbox?
+[x] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE) CON GLI HANDLER PER IL PERSONAGGIO
+[x] add cortex 
 
 TO DO TODAY
-[ ] REDESIGN UI INIZIALE (BUTTONS E DESIGN GENERALE) CON GLI HANDLER PER IL PERSONAGGIO
 [ ] FIX GEAR HITBOX
+[ ] ADD TEXTURE OF THE MAP
+[ ] MULTIPLE MAPS
+[ ] OTTIMIZZAZZIONE DEGLI FPS?
+[ ] FIX PROBABILITIES
 
 BUG
 
 MUST DO
-[ ] TODO METTERE UNA TEXTURE QUI
 
-
-OPTINAL
-[x] add cortex 
-[ ] add level 2 aku aku (godmod)
-[ ] character follow mouse animation

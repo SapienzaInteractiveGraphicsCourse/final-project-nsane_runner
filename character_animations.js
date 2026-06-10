@@ -749,7 +749,7 @@ export class CortexAnimations extends CharacterAnimations {
      *
      * Uses two tweens (legs + arms) mirroring the Crash pattern.
      */
-    characterWalkAnimation(character) {
+    characterWalkAnimation(character, skipReset = false) {
         // --- Capture the canonical rest pose exactly once (first call only) ---
         this._captureCanonicalRestPose(character);
 
@@ -763,8 +763,9 @@ export class CortexAnimations extends CharacterAnimations {
             character.armWalkTween = null;
         }
 
-        // --- Reset all bones to the canonical rest pose before starting ---
-        this._resetToCanonicalPose(character);
+        if (!skipReset) {
+            this._resetToCanonicalPose(character);
+        };
 
         // --- Bone references ---
         const hips = character.mesh.getObjectByName('mixamorigHips');
@@ -943,110 +944,153 @@ export class CortexAnimations extends CharacterAnimations {
         this._punchCharacterAnimation(character);
     }
 
+    /**
+ * Rewritten punch animation — fixes five bugs in the original:
+ *  1. Walk tweens now nulled (not just stopped) so cleanup is safe
+ *  2. Left arm included in recovery (was completely abandoned before)
+ *  3. Recovery targets the walk cycle's phase=0 neutral pose, not a stale mid-stride snapshot
+ *  4. rightArm.rotation.y is locked throughout (was never set, left at a random value)
+ *  5. No T-pose flash — recovery lands exactly where the walk tween expects to begin
+ */
     _punchCharacterAnimation(character) {
         if (!character.mesh) return;
 
         const self = this;
-
-        // --- Bone references ---
-        const rightArm = character.mesh.getObjectByName('mixamorigRightArm');
-        const rightForeArm = character.mesh.getObjectByName('mixamorigRightForeArm');
-        const spine = character.mesh.getObjectByName('mixamorigSpine');
-
-        // --- Save the current running pose so we can restore it afterwards ---
-        const savedPose = {
-            rightArmX: rightArm ? rightArm.rotation.x : 0,
-            rightArmZ: rightArm ? rightArm.rotation.z : 0,
-            rightForeArmX: rightForeArm ? rightForeArm.rotation.x : 0,
-            spineY: spine ? spine.rotation.y : 0
-        };
-
-        // --- Pause BOTH walk tweens (legs + arms) while punching ---
-        if (character.walkTween) character.walkTween.stop();
-        if (character.armWalkTween) character.armWalkTween.stop();
-
         const rest = character._canonicalRestPose;
 
+        // Must mirror the matching constants in characterWalkAnimation
+        const armDownAngle = 1.2;
+        const elbowFlexMin = 0.1;
+
+        // --- Bone refs ---
+        const rightArm = character.mesh.getObjectByName('mixamorigRightArm');
+        const rightForeArm = character.mesh.getObjectByName('mixamorigRightForeArm');
+        const leftArm = character.mesh.getObjectByName('mixamorigLeftArm');
+        const leftForeArm = character.mesh.getObjectByName('mixamorigLeftForeArm');
+        const spine = character.mesh.getObjectByName('mixamorigSpine');
+
+        // FIX 1: Stop AND null — characterWalkAnimation's cleanup check is then safe
+        if (character.walkTween) { character.walkTween.stop(); character.walkTween = null; }
+        if (character.armWalkTween) { character.armWalkTween.stop(); character.armWalkTween = null; }
+
+        // Snapshot of the frozen mid-walk state — wind-up starts from here
+        const from = {
+            rAx: rightArm ? rightArm.rotation.x : rest.rA.x,
+            rAy: rightArm ? rightArm.rotation.y : rest.rA.y,
+            rAz: rightArm ? rightArm.rotation.z : rest.rA.z,
+            rFAx: rightForeArm ? rightForeArm.rotation.x : rest.rFA.x,
+            lAx: leftArm ? leftArm.rotation.x : rest.lA.x,   // FIX 2: capture left arm too
+            lAy: leftArm ? leftArm.rotation.y : rest.lA.y,
+            lAz: leftArm ? leftArm.rotation.z : rest.lA.z,
+            lFAx: leftForeArm ? leftForeArm.rotation.x : rest.lFA.x,
+            spY: spine ? spine.rotation.y : rest.spine.y,
+        };
+
+        // FIX 3 & 5: Recovery target = walk cycle's phase=0 neutral arm pose.
+        // characterWalkAnimation sets exactly these values on its very first tween
+        // update frame, so ending here gives a seamless, T-pose-free handoff.
+        const neutral = {
+            rAx: rest.rA.x,
+            rAy: rest.rA.y + Math.PI / 2,   // FIX 4: Y must be set explicitly
+            rAz: rest.rA.z + armDownAngle,
+            rFAx: rest.rFA.x + elbowFlexMin,
+            lAx: rest.lA.x,
+            lAy: rest.lA.y - Math.PI / 2,
+            lAz: rest.lA.z - armDownAngle,
+            lFAx: rest.lFA.x + elbowFlexMin,
+            spY: rest.spine.y,
+        };
+
         // =========================================================================
-        // PHASE 1 — WIND UP  (pull arm back, bend elbow, twist spine slightly)
+        // PHASE 1 — WIND UP  (pull arm back, flex elbow tight, twist spine right)
         // =========================================================================
-        const windUpDuration = 100; // ms
         const windUp = { t: 0 };
         const windUpTween = new TWEEN.Tween(windUp)
-            .to({ t: 1 }, windUpDuration)
+            .to({ t: 1 }, 100)
             .easing(TWEEN.Easing.Quadratic.Out)
             .onUpdate(() => {
                 const t = windUp.t;
                 if (rightArm) {
-                    rightArm.rotation.x = savedPose.rightArmX + ((rest.rA.x - 0.8) - savedPose.rightArmX) * t;
-                    rightArm.rotation.z = savedPose.rightArmZ + ((rest.rA.z + 1.2) - savedPose.rightArmZ) * t; // arm stays down
+                    rightArm.rotation.x = from.rAx + ((rest.rA.x - 0.8) - from.rAx) * t;
+                    rightArm.rotation.y = neutral.rAy; // FIX 4: lock Y throughout all punch phases
+                    rightArm.rotation.z = from.rAz + ((rest.rA.z + 1.2) - from.rAz) * t;
                 }
                 if (rightForeArm) {
-                    rightForeArm.rotation.x = savedPose.rightForeArmX + ((rest.rFA.x + 2.0) - savedPose.rightForeArmX) * t; // tight bend
+                    rightForeArm.rotation.x = from.rFAx + ((rest.rFA.x + 2.0) - from.rFAx) * t;
                 }
                 if (spine) {
-                    spine.rotation.y = savedPose.spineY + ((rest.spine.y - 0.4) - savedPose.spineY) * t; // twist body right
+                    spine.rotation.y = from.spY + ((rest.spine.y - 0.4) - from.spY) * t;
                 }
             });
 
         // =========================================================================
-        // PHASE 2 — STRIKE  (thrust arm forward, straighten elbow, twist body)
+        // PHASE 2 — STRIKE  (thrust arm forward, straighten elbow, twist spine left)
         // =========================================================================
-        const strikeDuration = 100; // ms
         const strike = { t: 0 };
         const strikeTween = new TWEEN.Tween(strike)
-            .to({ t: 1 }, strikeDuration)
+            .to({ t: 1 }, 100)
             .easing(TWEEN.Easing.Quadratic.In)
             .onUpdate(() => {
                 const t = strike.t;
                 if (rightArm) {
-                    rightArm.rotation.x = (rest.rA.x - 0.8) + ((rest.rA.x + 1.5) - (rest.rA.x - 0.8)) * t; // punch forward
-                    rightArm.rotation.z = (rest.rA.z + 1.2) + ((rest.rA.z + 0.2) - (rest.rA.z + 1.2)) * t; // lift arm horizontally
+                    rightArm.rotation.x = (rest.rA.x - 0.8) + ((rest.rA.x + 1.5) - (rest.rA.x - 0.8)) * t;
+                    rightArm.rotation.y = neutral.rAy;
+                    rightArm.rotation.z = (rest.rA.z + 1.2) + ((rest.rA.z + 0.2) - (rest.rA.z + 1.2)) * t;
                 }
                 if (rightForeArm) {
-                    rightForeArm.rotation.x = (rest.rFA.x + 2.0) + ((rest.rFA.x + 0.1) - (rest.rFA.x + 2.0)) * t; // straighten elbow
+                    rightForeArm.rotation.x = (rest.rFA.x + 2.0) + ((rest.rFA.x + 0.1) - (rest.rFA.x + 2.0)) * t;
                 }
                 if (spine) {
-                    spine.rotation.y = (rest.spine.y - 0.4) + ((rest.spine.y + 0.5) - (rest.spine.y - 0.4)) * t; // twist body left
+                    spine.rotation.y = (rest.spine.y - 0.4) + ((rest.spine.y + 0.5) - (rest.spine.y - 0.4)) * t;
                 }
             });
 
         // =========================================================================
-        // PHASE 3 — RECOVERY  (return to neutral then restart walk animation)
+        // PHASE 3 — RECOVERY  (ALL animated bones → walk cycle's phase=0 neutral)
         // =========================================================================
-        const recoveryDuration = 150; // ms
         const recovery = { t: 0 };
         const recoveryTween = new TWEEN.Tween(recovery)
-            .to({ t: 1 }, recoveryDuration)
+            .to({ t: 1 }, 200)
             .easing(TWEEN.Easing.Quadratic.Out)
             .onUpdate(() => {
                 const t = recovery.t;
+
+                // Right arm: strike-end pose → neutral walk pose
                 if (rightArm) {
-                    rightArm.rotation.x = (rest.rA.x + 1.5) + (savedPose.rightArmX - (rest.rA.x + 1.5)) * t;
-                    rightArm.rotation.z = (rest.rA.z + 0.2) + (savedPose.rightArmZ - (rest.rA.z + 0.2)) * t;
+                    rightArm.rotation.x = (rest.rA.x + 1.5) + (neutral.rAx - (rest.rA.x + 1.5)) * t;
+                    rightArm.rotation.y = neutral.rAy;
+                    rightArm.rotation.z = (rest.rA.z + 0.2) + (neutral.rAz - (rest.rA.z + 0.2)) * t;
                 }
                 if (rightForeArm) {
-                    rightForeArm.rotation.x = (rest.rFA.x + 0.1) + (savedPose.rightForeArmX - (rest.rFA.x + 0.1)) * t;
+                    rightForeArm.rotation.x = (rest.rFA.x + 0.1) + (neutral.rFAx - (rest.rFA.x + 0.1)) * t;
                 }
+
+                // FIX 2: Left arm was abandoned for the whole punch; smoothly bring
+                // it from its frozen mid-walk position to the walk cycle neutral pose.
+                if (leftArm) {
+                    leftArm.rotation.x = from.lAx + (neutral.lAx - from.lAx) * t;
+                    leftArm.rotation.y = from.lAy + (neutral.lAy - from.lAy) * t;
+                    leftArm.rotation.z = from.lAz + (neutral.lAz - from.lAz) * t;
+                }
+                if (leftForeArm) {
+                    leftForeArm.rotation.x = from.lFAx + (neutral.lFAx - from.lFAx) * t;
+                }
+
                 if (spine) {
-                    spine.rotation.y = (rest.spine.y + 0.5) + (savedPose.spineY - (rest.spine.y + 0.5)) * t;
+                    spine.rotation.y = (rest.spine.y + 0.5) + (neutral.spY - (rest.spine.y + 0.5)) * t;
                 }
             })
             .onComplete(() => {
-                // Reset every bone to the canonical rest pose
-                self._resetToCanonicalPose(character);
-
-                // Unlock punch and restart the walk animation from a clean state
                 character.isRotating = false;
-                self.characterWalkAnimation(character);
+
+                // FIX 3 & 5: Bones are already sitting at the walk cycle's phase=0
+                // neutral pose. Pass skipReset=true so characterWalkAnimation does NOT
+                // stomp them back to T-pose before the first tween update frame fires.
+                self.characterWalkAnimation(character, true);
             });
 
-        // =========================================================================
-        // CHAIN
-        // =========================================================================
         windUpTween.chain(strikeTween);
         strikeTween.chain(recoveryTween);
-
         registerTween(windUpTween);
         registerTween(strikeTween);
         registerTween(recoveryTween);

@@ -126,11 +126,28 @@ export function checkBoxCollisions(scene) {
                             const akuaku = new AkuAku();
                             if (akuaku.mesh) {
 
-                                akuaku.mesh.position.set(-2.5, 3.5, 1.2);
+                                // Compensate for the parent mesh's scale AND rotation
+                                // so Aku Aku looks identical regardless of character.
+                                // Crash: scale 1, rotY 0 | Cortex: scale 0.004, rotY π/2
+                                const parentScale = window.character.mesh.scale.x;
+                                const invScale = 1 / parentScale;
+                                const parentRotY = window.character.mesh.rotation.y;
 
-                                akuaku.mesh.rotation.y = -Math.PI / 2;
+                                // Counter-rotate the desired world offset into parent local space
+                                const wx = -2.5, wy = 3.5, wz = 1.2;
+                                const cosR = Math.cos(parentRotY);
+                                const sinR = Math.sin(parentRotY);
+                                akuaku.mesh.position.set(
+                                    ( wx * cosR - wz * sinR) * invScale,
+                                      wy * invScale,
+                                    ( wx * sinR + wz * cosR) * invScale
+                                );
 
-                                akuaku.mesh.scale.set(0.004, 0.004, 0.004);
+                                // Counter-rotate the desired world-space facing
+                                akuaku.mesh.rotation.y = -Math.PI / 2 - parentRotY;
+
+                                const akuScale = 0.004 * invScale;
+                                akuaku.mesh.scale.set(akuScale, akuScale, akuScale);
 
                                 window.character.mesh.add(akuaku.mesh);
                                 window.akuaku = akuaku;
@@ -237,9 +254,9 @@ export function checkBoxCollisions(scene) {
                         const dropY = 1.5;
                         const dropZ = charPos.z;
 
-                        // const roll = Math.random();
-                        let roll = 3;
-                        if (roll < 1 / 3) {
+                        const roll = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+
+                        if (roll === 1) {
                             // Drop 3–5 Wumpa Fruits fanned out along Z
                             const wumpaCount = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5
                             for (let w = 0; w < wumpaCount; w++) {
@@ -248,7 +265,7 @@ export function checkBoxCollisions(scene) {
                                 scene.add(droppedWumpa);
                             }
                             console.log(`Question box dropped: ${wumpaCount} Wumpa Fruits`);
-                        } else if (roll < 2 / 3) {
+                        } else if (roll === 2) {
                             // Drop a Crash Extra Life
                             const droppedLife = new DroppedLife(dropX, dropY, dropZ);
                             scene.add(droppedLife);

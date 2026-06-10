@@ -12,7 +12,7 @@ import { pauseGame, isPaused, isGameOver } from './game_management.js';
 export class CrashManagement {
 
     constructor() {
-        this.animations = new CortexAnimations();
+        this.animations = new CrashAnimations();
     }
 
     /**

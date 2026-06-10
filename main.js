@@ -104,14 +104,11 @@ window.showHitboxes = false;
 // Wumpa collection score
 let wumpaScore = 0;
 
-// Main character instance
-// const character = new Crash();
-const character = new Cortex();
-window.character = character;
-
-// Management instance (binds input + animations for the selected character)
-// const characterManager = new CrashManagement();
-const characterManager = new CortexManagement();
+// Main character + manager — created after the player clicks Play
+// so the menu selection from localStorage is available.
+let selectedCharacter;
+let character;
+let characterManager;
 
 //this code will have to be further optimized
 const loader = new GLTFLoader();
@@ -121,7 +118,7 @@ const fbxLoader = new FBXLoader();
  * Loads all game assets in parallel using Promise.all.
  *
  * Assets loaded here:
- *  - Crash Bandicoot character model (via Crash.load())
+ *  - Character model (Crash via GLTFLoader, Cortex via FBXLoader)
  *  - /wumpa/scene.gltf  → Wumpa fruit collectible model
  *
  * @returns {Promise<{ wumpaGltf: GLTF }>}
@@ -131,7 +128,7 @@ function loadAssets() {
         new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
 
     return Promise.all([
-        character.load(fbxLoader),
+        selectedCharacter === 'crash' ? character.load(loader) : character.load(fbxLoader),
         AkuAku.load(loader),
         loadGLTF('/wumpa/scene.gltf'),
         loadGLTF('/gem/gems.glb'),
@@ -156,10 +153,6 @@ function waitForPlay() {
         if (localStorage.getItem('nsane_restart') === 'true') {
             localStorage.removeItem('nsane_restart');
 
-            // Hide the splash screen instantly
-            const splash = document.getElementById('splash-screen');
-            if (splash) splash.classList.add('hidden');
-
             // Selections are still in localStorage from the original Play
             settings.init();
             resolve();
@@ -176,13 +169,22 @@ function waitForPlay() {
 }
 
 // --- BOOTSTRAP ---
-// 1. Load all assets in parallel (while the splash screen is visible).
-// 2. Wait for the player to click Play.
-// 3. Inject the wumpa model, generate the map, add the character, and start.
-loadAssets()
-    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }) => {
-        // Assets are ready — now wait for Play button before starting the game.
-        return waitForPlay().then(() => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }));
+// 1. Wait for the player to click Play (so we know their character choice).
+// 2. Create the character + manager based on the selection.
+// 3. Load all assets in parallel.
+// 4. Inject models, generate the map, add the character, and start.
+waitForPlay()
+    .then(() => {
+        // Now localStorage has the player's selections — create character
+        selectedCharacter = settings.character;   // 'crash' or 'cortex'
+        character = selectedCharacter === 'cortex' ? new Cortex() : new Crash();
+        window.character = character;
+
+        characterManager = selectedCharacter === 'cortex'
+            ? new CortexManagement()
+            : new CrashManagement();
+
+        return loadAssets();
     })
     .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }) => {
 
@@ -230,6 +232,10 @@ loadAssets()
 
         // Start the render / game loop
         animate();
+
+        // Hide splash screen now that everything is ready
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.classList.add('hidden');
 
         console.log('Game started!');
 
