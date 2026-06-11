@@ -6,6 +6,7 @@ import { Sound } from './sounds.js';
 import { registerTween } from './tween_registry.js';
 
 const spinSound = new Sound('spinSound.wav');
+const punchSound = new Sound('punch.wav')
 
 
 // =============================================================================
@@ -939,7 +940,7 @@ export class CortexAnimations extends CharacterAnimations {
         }
 
         character.isRotating = true;
-        spinSound.start();
+        punchSound.start();
 
         this._punchCharacterAnimation(character);
     }

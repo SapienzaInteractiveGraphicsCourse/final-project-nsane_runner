@@ -4,6 +4,7 @@ import { startup_akuaku_animation } from './objects_animations.js';
 import { gameOver } from './game_management.js';
 import { DroppedWumpa, DroppedLife, DroppedGem, getRandomGemType } from './objects.js';
 import { Sound } from './sounds.js';
+import { stopObjectTweens } from './tween_registry.js';
 
 // ── Pre-instantiated sound effects (singletons) ──────────────────────────
 const wumpaSound = new Sound('wumpa.wav');
@@ -15,6 +16,53 @@ const lifeSound = new Sound('life.wav');
 const nitroSound = new Sound('nitro.wav');
 const gameOverSound = new Sound('woah.wav');
 
+const wumpaTargets = new Set();
+const boxTargets = new Set();
+const droppedLifeTargets = new Set();
+const droppedGemTargets = new Set();
+const gearTargets = new Set();
+const hitboxTargets = new Set();
+const _gearCollisionCenter = new THREE.Vector3();
+const _gearCollisionSphere = new THREE.Sphere();
+const _gearHitboxCenter = new THREE.Vector3();
+const _gearHitboxSize = new THREE.Vector3();
+
+const BOX_NAMES = new Set([
+    'standard_box',
+    'burubuga_box',
+    'nitro_box',
+    'new_life',
+    'question_box',
+]);
+
+export function registerCollisionObject(node) {
+    if (!node) return;
+
+    if (node.name === 'wumpa_fruit' && node.userData.hitbox) wumpaTargets.add(node);
+    if (BOX_NAMES.has(node.name) && node.userData.hitbox) boxTargets.add(node);
+    if (node.name === 'dropped_life' && node.userData.hitbox) droppedLifeTargets.add(node);
+    if (node.name === 'dropped_gem' && node.userData.hitbox) droppedGemTargets.add(node);
+    if (node.name === 'gear') gearTargets.add(node);
+    if (node.userData?.hitbox || node.name === 'gear') hitboxTargets.add(node);
+}
+
+export function unregisterCollisionObject(node) {
+    if (!node) return;
+
+    stopObjectTweens(node);
+    wumpaTargets.delete(node);
+    boxTargets.delete(node);
+    droppedLifeTargets.delete(node);
+    droppedGemTargets.delete(node);
+    gearTargets.delete(node);
+    hitboxTargets.delete(node);
+}
+
+function removeCollisionObject(node) {
+    unregisterCollisionObject(node);
+    node.parent?.remove(node);
+}
+
 /**
  * Checks every wumpa_fruit in the scene against the character's bounding box.
  * Collected fruits are removed from the scene and the score is incremented.
@@ -24,19 +72,16 @@ export function checkWumpaCollisions(scene, wumpascore) {
 
     const characterHitbox = window.character.get_hitbox();
 
-    // Collect nodes to remove after traversal (avoid mutating mid-traverse)
     const toRemove = [];
 
-    scene.traverse((node) => {
-        if (node.name === 'wumpa_fruit' && node.userData.hitbox) {
-            if (characterHitbox.intersectsBox(node.userData.hitbox)) {
-                toRemove.push(node);
-            }
+    for (const node of wumpaTargets) {
+        if (characterHitbox.intersectsBox(node.userData.hitbox)) {
+            toRemove.push(node);
         }
-    });
+    }
 
     toRemove.forEach((node) => {
-        node.parent?.remove(node);
+        removeCollisionObject(node);
         wumpascore++;
         wumpaSound.start();
         console.log(`Wumpa collected! Score: ${wumpascore}`);
@@ -52,6 +97,7 @@ export function checkWumpaCollisions(scene, wumpascore) {
             const dropZ = charPos.z;
             const droppedLife = new DroppedLife(dropX, dropY, dropZ);
             scene.add(droppedLife);
+            registerCollisionObject(droppedLife);
             console.log('100 Wumpas! Bonus life spawned.');
         }
     }
@@ -70,10 +116,9 @@ export function checkBoxCollisions(scene) {
     const charPos = window.character.mesh.position;
     const characterHitbox = window.character.get_hitbox();
 
-    // Collect nodes to remove after traversal (avoid mutating mid-traverse)
     const toRemove = [];
 
-    scene.traverse((node) => {
+    for (const node of boxTargets) {
         if (node.userData && node.userData.hitbox) {
             if (node.name === 'standard_box') {
                 if (characterHitbox.intersectsBox(node.userData.hitbox)) {
@@ -86,10 +131,11 @@ export function checkBoxCollisions(scene) {
 
                         // Drop a wumpa fruit slightly ahead of the character
                         const dropX = charPos.x + 8;
-                        const dropY = 1.5;
+                        const dropY = node.position.y;
                         const dropZ = charPos.z;
                         const droppedWumpa = new DroppedWumpa(dropX, dropY, dropZ);
                         scene.add(droppedWumpa);
+                        registerCollisionObject(droppedWumpa);
 
                         toRemove.push(node);
                     } else {
@@ -213,10 +259,11 @@ export function checkBoxCollisions(scene) {
 
                         // Drop a crash-face life pickup slightly ahead of the character
                         const dropX = charPos.x + 7;
-                        const dropY = 1.5;
+                        const dropY = node.position.y;
                         const dropZ = charPos.z;
                         const droppedLife = new DroppedLife(dropX, dropY, dropZ);
                         scene.add(droppedLife);
+                        registerCollisionObject(droppedLife);
 
                         toRemove.push(node);
                     } else {
@@ -251,7 +298,7 @@ export function checkBoxCollisions(scene) {
 
                         // Randomly select one of three items to drop
                         const dropX = charPos.x + 10;
-                        const dropY = 1.5;
+                        const dropY = node.position.y;
                         const dropZ = charPos.z;
 
                         const roll = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
@@ -263,12 +310,14 @@ export function checkBoxCollisions(scene) {
                                 const offsetZ = (w - Math.floor(wumpaCount / 2)) * 0.8;
                                 const droppedWumpa = new DroppedWumpa(dropX, dropY, dropZ + offsetZ);
                                 scene.add(droppedWumpa);
+                                registerCollisionObject(droppedWumpa);
                             }
                             console.log(`Question box dropped: ${wumpaCount} Wumpa Fruits`);
                         } else if (roll === 2) {
                             // Drop a Crash Extra Life
                             const droppedLife = new DroppedLife(dropX, dropY, dropZ);
                             scene.add(droppedLife);
+                            registerCollisionObject(droppedLife);
                             console.log('Question box dropped: Extra Life');
                         } else {
                             // Drop a random Crash Gem (if any remain uncollected)
@@ -276,16 +325,19 @@ export function checkBoxCollisions(scene) {
                             if (gemType) {
                                 const droppedGem = new DroppedGem(dropX, dropY, dropZ, gemType);
                                 scene.add(droppedGem);
+                                registerCollisionObject(droppedGem);
                                 console.log(`Question box dropped: ${gemType}`);
                             } else {
                                 // All gems collected — fall back to wumpas (90%) or life (10%)
                                 if (Math.random() < 0.9) {
                                     const droppedWumpa = new DroppedWumpa(dropX, dropY, dropZ);
                                     scene.add(droppedWumpa);
+                                    registerCollisionObject(droppedWumpa);
                                     console.log('Question box dropped: Wumpa (all gems collected)');
                                 } else {
                                     const droppedLife = new DroppedLife(dropX, dropY, dropZ);
                                     scene.add(droppedLife);
+                                    registerCollisionObject(droppedLife);
                                     console.log('Question box dropped: Extra Life (all gems collected)');
                                 }
                             }
@@ -315,10 +367,10 @@ export function checkBoxCollisions(scene) {
                 }
             }
         }
-    });
+    }
 
     toRemove.forEach((node) => {
-        node.parent?.remove(node);
+        removeCollisionObject(node);
     });
 }
 
@@ -334,16 +386,14 @@ export function checkDroppedLifeCollisions(scene) {
 
     const toRemove = [];
 
-    scene.traverse((node) => {
-        if (node.name === 'dropped_life' && node.userData.hitbox) {
-            if (characterHitbox.intersectsBox(node.userData.hitbox)) {
-                toRemove.push(node);
-            }
+    for (const node of droppedLifeTargets) {
+        if (characterHitbox.intersectsBox(node.userData.hitbox)) {
+            toRemove.push(node);
         }
-    });
+    }
 
     toRemove.forEach((node) => {
-        node.parent?.remove(node);
+        removeCollisionObject(node);
         lifeSound.start();
         window.lives = (window.lives || 0) + 1;
         if (window.setHudLives) window.setHudLives(window.lives);
@@ -364,17 +414,15 @@ export function checkDroppedGemCollisions(scene) {
 
     const toRemove = [];
 
-    scene.traverse((node) => {
-        if (node.name === 'dropped_gem' && node.userData.hitbox) {
-            if (characterHitbox.intersectsBox(node.userData.hitbox)) {
-                toRemove.push(node);
-            }
+    for (const node of droppedGemTargets) {
+        if (characterHitbox.intersectsBox(node.userData.hitbox)) {
+            toRemove.push(node);
         }
-    });
+    }
 
     const collectedTypes = [];
     toRemove.forEach((node) => {
-        node.parent?.remove(node);
+        removeCollisionObject(node);
         gemSound.start();
         collectedTypes.push(node.userData.gemType);
         console.log(`Gem collected: ${node.userData.gemType}`);
@@ -390,41 +438,36 @@ export function checkGearCollisions(scene) {
 
     const toRemove = [];
 
-    const tempVector = new THREE.Vector3();
+    for (const node of gearTargets) {
+        node.getWorldPosition(_gearCollisionCenter);
+        _gearCollisionSphere.set(_gearCollisionCenter, node.userData.hitboxRadius || 3.5);
 
-    scene.traverse((node) => {
-        if (node.name === 'gear') {
+        if (characterHitbox.intersectsSphere(_gearCollisionSphere)) {
+            nitroSound.start();
 
-            node.getWorldPosition(tempVector);
-            const gearHitbox = new THREE.Sphere(tempVector, node.userData.hitboxRadius);
+            if (window.akuaku && window.akuaku.mesh) {
+                window.character.mesh.remove(window.akuaku.mesh);
+                window.akuaku = null;
+                akuakuVanish.start();
+                console.log("Aku Aku protected you from the gear!");
+                toRemove.push(node);
+            } else {
+                window.lives = Math.max(0, (window.lives || 3) - 1);
+                if (window.setHudLives) window.setHudLives(window.lives);
 
-            if (characterHitbox.intersectsSphere(gearHitbox)) {
-                nitroSound.start();
-
-                if (window.akuaku && window.akuaku.mesh) {
-                    window.character.mesh.remove(window.akuaku.mesh);
-                    window.akuaku = null;
-                    akuakuVanish.start();
-                    console.log("Aku Aku protected you from the gear!");
-                    toRemove.push(node);
+                if (window.lives <= 0) {
+                    gameOverSound.start();
+                    gameOver();
                 } else {
-                    window.lives = Math.max(0, (window.lives || 3) - 1);
-                    if (window.setHudLives) window.setHudLives(window.lives);
-
-                    if (window.lives <= 0) {
-                        gameOverSound.start();
-                        gameOver();
-                    } else {
-                        console.log(`Hit by gear! Lives remaining: ${window.lives}`);
-                        toRemove.push(node);
-                    }
+                    console.log(`Hit by gear! Lives remaining: ${window.lives}`);
+                    toRemove.push(node);
                 }
             }
         }
-    });
+    }
 
     toRemove.forEach((node) => {
-        node.parent?.remove(node);
+        removeCollisionObject(node);
     });
 }
 
@@ -466,8 +509,8 @@ export function updateHitboxHelpers(scene) {
         'nitro_box', 'gear', 'standard_box', 'burubuga_box', 'question_box', 'new_life'
     ]);
 
-    scene.traverse((node) => {
-        if (node.name === '_hitbox_helper') return;
+    for (const node of hitboxTargets) {
+        if (node.name === '_hitbox_helper') continue;
 
         // Static / stored hitbox
         if (node.userData?.hitbox) {
@@ -480,12 +523,15 @@ export function updateHitboxHelpers(scene) {
 
         // Gear uses a dynamic hitbox (computed from the mesh each frame)
         if (node.name === 'gear' && !node.userData?.hitbox) {
-            const gearBox = new THREE.Box3().setFromObject(node);
-            gearBox.expandByScalar(-0.5);
+            node.getWorldPosition(_gearHitboxCenter);
+            const gearBox = new THREE.Box3().setFromCenterAndSize(
+                _gearHitboxCenter,
+                _gearHitboxSize.setScalar((node.userData.hitboxRadius || 3.5) * 2)
+            );
             const helper = new THREE.Box3Helper(gearBox, 0xff3333);
             helper.name = '_hitbox_helper';
             scene.add(helper);
             _hitboxHelpers.add(helper);
         }
-    });
+    }
 }

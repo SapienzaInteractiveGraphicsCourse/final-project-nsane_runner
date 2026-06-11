@@ -75,6 +75,22 @@ export function stopAllTweens() {
     activeTweens.length = 0;
 }
 
+/**
+ * Stop tweens attached to a single Object3D by objects_animations.js.
+ * This prevents recycled map tiles from leaving idle animations running.
+ *
+ * @param {THREE.Object3D} object
+ */
+export function stopObjectTweens(object) {
+    const tweens = object?.userData?.tweens;
+    if (!Array.isArray(tweens)) return;
+
+    for (const tween of tweens) {
+        tween.stop();
+    }
+    tweens.length = 0;
+}
+
 /* ── internal helper ─────────────────────────────────────────────── */
 function _removeTween(tween) {
     const idx = activeTweens.indexOf(tween);

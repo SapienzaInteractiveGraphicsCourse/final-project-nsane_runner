@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, Cassa, RockSphere, Totem, Gear, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './objects.js';
 import { gear_animation } from './objects_animations.js';
 import { settings } from './settings.js';
-import { mat4 } from 'three/tsl';
+import { registerCollisionObject, unregisterCollisionObject } from './check_collisions.js';
 
 // --- Module-level tile tracking ---
 // Every tile created by initTile is pushed here so removeTiles can manage them.
@@ -11,55 +11,42 @@ export const activeTiles = [];
 // Tracks the cumulative row offset for the next tile to be placed.
 let cumulativePosition = 0;
 
+const TILE_MESH_SIZE = 15;
+const TILE_ROWS = 12;
+const TILE_LANES = 1;
+const TILE_SIDE_COLS_LEFT = 6;
+const TILE_SIDE_COLS_RIGHT = 6;
+const TILE_TOTAL_COLS = TILE_SIDE_COLS_LEFT + TILE_LANES + TILE_SIDE_COLS_RIGHT;
+const TILE_WIDTH_X = TILE_ROWS * TILE_MESH_SIZE;
+
+const materialRoad = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+const materialSide = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+const roadGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_LANES * TILE_MESH_SIZE);
+const sideGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_SIDE_COLS_LEFT * TILE_MESH_SIZE);
+
 // Re-export so callers (e.g. main.js) don't need to change their import path.
 export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel };
 
 export function initTile(scene, num) {
 
     // --- TILE SETTINGS ---
-    var meshSize = 15;
-    var rows = 12;
-    var lanes = 1;
+    var meshSize = TILE_MESH_SIZE;
+    var rows = TILE_ROWS;
+    var lanes = TILE_LANES;
 
-    var sideColsLeft = 6;
-    var sideColsRight = 6;
-    var totalCols = sideColsLeft + lanes + sideColsRight;
-
-    // TODO METTERE UNA TEXTURE QUI
-    var materialRoad = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-    var materialSide = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-    var geometry = new THREE.BoxGeometry(1, 1, 1);
+    var sideColsLeft = TILE_SIDE_COLS_LEFT;
+    var sideColsRight = TILE_SIDE_COLS_RIGHT;
+    var totalCols = TILE_TOTAL_COLS;
 
     for (var k = 0; k < num; k++) {
         var tile = new THREE.Group();
 
         // Store the starting X position so removeTiles can compare against it
         tile.userData.startX = cumulativePosition * meshSize;
+        tile.userData.endX = tile.userData.startX + TILE_WIDTH_X;
 
         // 1. BUILD THE GROUND
-        for (var row = 0; row < rows; row++) {
-            // Iterate from 0 to totalCols to perfectly match the logic matrix (j index)
-            for (let zIndex = 0; zIndex < totalCols; zIndex++) {
-
-                // Dynamically evaluate if the current block is road or grass
-                const isRoad = (zIndex >= sideColsLeft && zIndex < sideColsLeft + lanes);
-                const currentMaterial = isRoad ? materialRoad : materialSide;
-
-                const mesh = new THREE.Mesh(geometry, currentMaterial);
-                mesh.scale.set(meshSize, 1, meshSize);
-
-                mesh.position.y = -0.5;
-                mesh.position.x = (row + cumulativePosition) * meshSize;
-
-                // Center the Z position relative to the world origin (Z = 0)
-                // e.g., if totalCols is 13, zIndex 0 becomes -6, zIndex 6 becomes 0.
-                mesh.position.z = (zIndex - Math.floor(totalCols / 2)) * meshSize;
-
-                mesh.receiveShadow = true;
-
-                tile.add(mesh);
-            }
-        }
+        addGroundStrips(tile, cumulativePosition, meshSize);
 
         // 2. GENERATE LOGIC MATRIX
         var mat = initMatrix(rows, totalCols, sideColsLeft, lanes);
@@ -74,6 +61,29 @@ export function initTile(scene, num) {
         // Track the tile and add it to the scene
         activeTiles.push(tile);
         scene.add(tile);
+    }
+}
+
+function addGroundStrips(tile, cumulativePosition, meshSize) {
+    const centerX = (cumulativePosition + (TILE_ROWS - 1) / 2) * meshSize;
+    const sideCenterOffset = ((TILE_SIDE_COLS_LEFT + TILE_LANES) / 2) * meshSize;
+
+    const road = new THREE.Mesh(roadGeometry, materialRoad);
+    road.position.set(centerX, -0.5, 0);
+    road.receiveShadow = true;
+
+    const leftSide = new THREE.Mesh(sideGeometry, materialSide);
+    leftSide.position.set(centerX, -0.5, -sideCenterOffset);
+    leftSide.receiveShadow = true;
+
+    const rightSide = new THREE.Mesh(sideGeometry, materialSide);
+    rightSide.position.set(centerX, -0.5, sideCenterOffset);
+    rightSide.receiveShadow = true;
+
+    for (const mesh of [road, leftSide, rightSide]) {
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+        tile.add(mesh);
     }
 }
 
@@ -390,6 +400,7 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                             gear_animation(obj);
                         }
 
+                        registerCollisionObject(obj);
                         tile.add(obj);
                     }
                 }
@@ -450,35 +461,13 @@ export function removeTiles(scene) {
 
     for (let i = activeTiles.length - 1; i >= 0; i--) {
         const tile = activeTiles[i];
-
-        // Find the maximum X position among the tile's ground meshes
-        // to determine the tile's trailing edge.
-        let tileMaxX = -Infinity;
-        tile.children.forEach(child => {
-            if (child.position.x > tileMaxX) tileMaxX = child.position.x;
-        });
+        const tileMaxX = tile.userData.endX;
 
         if (tileMaxX < charX - REMOVE_THRESHOLD) {
             console.log("deleting tile ...");
 
-            // Dispose GPU resources for every object in the tile
             tile.traverse(child => {
-                if (child.isMesh) {
-                    if (child.geometry) child.geometry.dispose();
-
-                    const mats = Array.isArray(child.material)
-                        ? child.material
-                        : [child.material];
-                    mats.forEach(mat => {
-                        if (!mat) return;
-                        // Dispose any texture maps attached to the material
-                        for (const key of Object.keys(mat)) {
-                            const value = mat[key];
-                            if (value && value.isTexture) value.dispose();
-                        }
-                        mat.dispose();
-                    });
-                }
+                unregisterCollisionObject(child);
             });
 
             scene.remove(tile);

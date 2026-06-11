@@ -84,6 +84,7 @@ let _gearModelCache = null;
 // inside a 5-unit lane cell without overlapping neighbouring cells.
 const BOX_SIZE = 2;
 const BOX_HALF = BOX_SIZE / 2;
+const BOX_GEOMETRY = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
 
 /**
  * Helper: compute world position and hitbox for a grid-placed box.
@@ -132,8 +133,7 @@ export class StandardBox extends THREE.Mesh {
      * @param {number} cumulativePosition - Tile depth offset along the X axis (in grid units).
      */
     constructor(meshSize, row, col, cumulativePosition) {
-        const geometry = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
-        super(geometry, _material);
+        super(BOX_GEOMETRY, _material);
 
         this.name = 'standard_box';
         this.castShadow = true;
@@ -151,8 +151,7 @@ export class StandardBox extends THREE.Mesh {
  */
 export class NitroBox extends THREE.Mesh {
     constructor(meshSize, row, col, cumulativePosition) {
-        const geometry = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
-        super(geometry, _materialsNitro);
+        super(BOX_GEOMETRY, _materialsNitro);
 
         this.name = 'nitro_box';
         this.castShadow = true;
@@ -171,8 +170,7 @@ export class NitroBox extends THREE.Mesh {
  */
 export class BurubugaBox extends THREE.Mesh {
     constructor(meshSize, row, col, cumulativePosition) {
-        const geometry = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
-        super(geometry, _materialsBurubuga);
+        super(BOX_GEOMETRY, _materialsBurubuga);
 
         this.name = 'burubuga_box';
         this.castShadow = true;
@@ -184,8 +182,7 @@ export class BurubugaBox extends THREE.Mesh {
 
 export class QuestionBox extends THREE.Mesh {
     constructor(meshSize, row, col, cumulativePosition) {
-        const geometry = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
-        super(geometry, _materialsQuestionBox);
+        super(BOX_GEOMETRY, _materialsQuestionBox);
 
         this.name = 'question_box';
         this.castShadow = true;
@@ -198,8 +195,7 @@ export class QuestionBox extends THREE.Mesh {
 
 export class NewLife extends THREE.Mesh {
     constructor(meshSize, row, col, cumulativePosition) {
-        const geometry = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
-        super(geometry, _materialsNewLife);
+        super(BOX_GEOMETRY, _materialsNewLife);
 
         this.name = 'new_life';
         this.castShadow = true;
@@ -651,5 +647,6 @@ export class Gear extends THREE.Object3D {
         this.add(object);
 
         this.position.set(xPos, 0, zPos);
+        this.userData.hitboxRadius = 3.5;
     }
 }

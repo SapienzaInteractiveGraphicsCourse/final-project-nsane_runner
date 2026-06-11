@@ -1,6 +1,15 @@
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
 import { registerTween } from './tween_registry.js';
 
+function registerObjectTween(object, tween) {
+    if (!object.userData) object.userData = {};
+    if (!object.userData.tweens) object.userData.tweens = [];
+
+    const registeredTween = registerTween(tween);
+    object.userData.tweens.push(registeredTween);
+    return registeredTween;
+}
+
 /**
  * Attaches a looping idle animation to a WumpaFruit Object3D:
  *   • Continuous full-spin on the Y axis
@@ -27,7 +36,7 @@ export function wumpa_animation(wumpa) {
         })
         .repeat(Infinity);
 
-    registerTween(spinTween);
+    registerObjectTween(wumpa, spinTween);
     spinTween.start();
 
     // ── 2. BOB (up → down, chained) ────────────────────────────────────
@@ -45,8 +54,8 @@ export function wumpa_animation(wumpa) {
     bobUp.chain(bobDown);
     bobDown.chain(bobUp);
 
-    registerTween(bobUp);
-    registerTween(bobDown);
+    registerObjectTween(wumpa, bobUp);
+    registerObjectTween(wumpa, bobDown);
     bobUp.start();
 }
 
@@ -120,12 +129,12 @@ export function nitro_animation(box) {
     rotLeft.chain(rotLeftBack);
     // rotLeftBack restarts via onComplete ↑
 
-    registerTween(jumpUp);
-    registerTween(jumpDown);
-    registerTween(rotRight);
-    registerTween(rotRightBack);
-    registerTween(rotLeft);
-    registerTween(rotLeftBack);
+    registerObjectTween(box, jumpUp);
+    registerObjectTween(box, jumpDown);
+    registerObjectTween(box, rotRight);
+    registerObjectTween(box, rotRightBack);
+    registerObjectTween(box, rotLeft);
+    registerObjectTween(box, rotLeftBack);
     jumpUp.start();
 }
 
@@ -142,7 +151,7 @@ export function dropped_item_animation(item) {
     const BASE_Y = item.position.y;
     const POP_HEIGHT = 2.5;              // how high the item pops out
     const POP_UP_DUR = 300;              // ms for upward arc
-    const POP_DOWN_DUR = 350;            // ms for landing
+    const SETTLE_DUR = 350;              // ms to ease back to resting height
     const BOB_HEIGHT = 0.6;
     const BOB_DURATION = 600;
     const SPIN_DURATION = 3000;
@@ -152,10 +161,10 @@ export function dropped_item_animation(item) {
         .to({ y: BASE_Y + POP_HEIGHT }, POP_UP_DUR)
         .easing(TWEEN.Easing.Quadratic.Out);
 
-    // ── 2. POP DOWN (land at resting height) ───────────────────────────
-    const popDown = new TWEEN.Tween(item.position)
-        .to({ y: BASE_Y }, POP_DOWN_DUR)
-        .easing(TWEEN.Easing.Bounce.Out)
+    // ── 2. SETTLE back to BASE_Y (no ground drop) ──────────────────────
+    const settle = new TWEEN.Tween(item.position)
+        .to({ y: BASE_Y }, SETTLE_DUR)
+        .easing(TWEEN.Easing.Quadratic.InOut)
         .onComplete(() => {
             // ── 3. CONTINUOUS SPIN ─────────────────────────────────────
             const rotation = { y: 0 };
@@ -165,7 +174,7 @@ export function dropped_item_animation(item) {
                 .onUpdate(() => { item.rotation.y = rotation.y; })
                 .repeat(Infinity);
 
-            registerTween(itemSpinTween);
+            registerObjectTween(item, itemSpinTween);
             itemSpinTween.start();
 
             // ── 4. IDLE BOB ────────────────────────────────────────────
@@ -179,14 +188,14 @@ export function dropped_item_animation(item) {
 
             bobUp.chain(bobDown);
             bobDown.chain(bobUp);
-            registerTween(bobUp);
-            registerTween(bobDown);
+            registerObjectTween(item, bobUp);
+            registerObjectTween(item, bobDown);
             bobUp.start();
         });
 
-    registerTween(popUp);
-    registerTween(popDown);
-    popUp.chain(popDown);
+    registerObjectTween(item, popUp);
+    registerObjectTween(item, settle);
+    popUp.chain(settle);
     popUp.start();
 }
 
@@ -284,9 +293,9 @@ export function gear_animation(gear) {
         .onUpdate(() => { gear.rotation.y = rotation.y; })
         .repeat(Infinity);
 
-    registerTween(rotate);
-    registerTween(translateRight);
-    registerTween(translateLeft);
+    registerObjectTween(gear, rotate);
+    registerObjectTween(gear, translateRight);
+    registerObjectTween(gear, translateLeft);
 
     rotate.start();
     translateRight.start();
