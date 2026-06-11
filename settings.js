@@ -49,8 +49,8 @@ class Settings {
         /** @type {'crash'|'cortex'} */
         this.character = 'crash';
 
-        /** @type {'beach'|'temple'|'cortexpower'} */
-        this.map = 'beach';
+        /** @type {'map1'|'map2'|'map3'} */
+        this.map = 'map1';
 
         /** @type {'easy'|'medium'|'hard'} */
         this.difficulty = 'medium';

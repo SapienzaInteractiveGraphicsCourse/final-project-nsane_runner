@@ -50,6 +50,32 @@
                 </div>
             </section>
 
+            <section class="menu-section" id="section-map">
+                <div class="menu-cards menu-cards--triple" id="map-cards">
+                    <button class="menu-card" data-group="map" data-value="map1" id="card-map1">
+                        <div class="card-icon-wrap beach-icon">
+                            <span class="card-emoji">🏜️</span>
+                        </div>
+                        <span class="card-name">Desert Canyon</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="map" data-value="map2" id="card-map2">
+                        <div class="card-icon-wrap power-icon">
+                            <span class="card-emoji">🌋</span>
+                        </div>
+                        <span class="card-name">Red Wasteland</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="map" data-value="map3" id="card-map3">
+                        <div class="card-icon-wrap temple-icon">
+                            <span class="card-emoji">🏰</span>
+                        </div>
+                        <span class="card-name">Stone Fortress</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
             <section class="menu-section" id="section-difficulty">
                 <div class="menu-cards menu-cards--triple" id="difficulty-cards">
                     <button class="menu-card card--easy" data-group="difficulty" data-value="easy" id="card-easy">
@@ -140,8 +166,7 @@
     <script>
         // ---- MENU SELECTION LOGIC ----
         (function () {
-            // Removed 'map' from the selections state
-            const selections = { character: null, difficulty: null };
+            const selections = { character: null, map: null, difficulty: null };
 
             // Handle card clicks
             document.querySelectorAll('.menu-card').forEach(card => {
@@ -159,7 +184,7 @@
                     selections[group] = value;
 
                     // Hide error message if all selections are made
-                    if (selections.character && selections.difficulty) {
+                    if (selections.character && selections.map && selections.difficulty) {
                         document.getElementById('menu-error').classList.add('hidden');
                     }
                 });
@@ -167,8 +192,7 @@
 
             // Play button handler
             document.getElementById('play-btn').addEventListener('click', () => {
-                // Removed map validation
-                if (!selections.character || !selections.difficulty) {
+                if (!selections.character || !selections.map || !selections.difficulty) {
                     const errEl = document.getElementById('menu-error');
                     errEl.classList.remove('hidden');
                     // Shake animation
@@ -180,10 +204,8 @@
 
                 // Save selections to localStorage
                 localStorage.setItem('nsane_character', selections.character);
+                localStorage.setItem('nsane_map', selections.map);
                 localStorage.setItem('nsane_difficulty', selections.difficulty);
-
-                // Clean up old map data just in case it's lingering in the browser
-                localStorage.removeItem('nsane_map');
 
                 // Dispatch a custom event so main.js can pick it up
                 window.dispatchEvent(new CustomEvent('nsane-play'));

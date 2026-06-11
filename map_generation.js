@@ -2,6 +2,14 @@ import * as THREE from 'three';
 import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, Cassa, RockSphere, Totem, Gear, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './objects.js';
 import { gear_animation } from './objects_animations.js';
 import { settings } from './settings.js';
+
+// --- MAP TEXTURE CONFIGURATION ---
+// Each map key maps to a folder under /maps/ with a road and side texture.
+const MAP_TEXTURES = {
+    map1: { road: '/maps/map 1/cactus_top.png', side: '/maps/map 1/cotton_tan.png' },
+    map2: { road: '/maps/map 2/cactus_side.png', side: '/maps/map 2/cotton_red.png' },
+    map3: { road: '/maps/map 3/greystone.png', side: '/maps/map 3/redsand.png' },
+};
 import { registerCollisionObject, unregisterCollisionObject } from './check_collisions.js';
 
 // --- Module-level tile tracking ---
@@ -19,8 +27,36 @@ const TILE_SIDE_COLS_RIGHT = 6;
 const TILE_TOTAL_COLS = TILE_SIDE_COLS_LEFT + TILE_LANES + TILE_SIDE_COLS_RIGHT;
 const TILE_WIDTH_X = TILE_ROWS * TILE_MESH_SIZE;
 
-const materialRoad = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-const materialSide = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+let materialRoad = null;
+let materialSide = null;
+let materialsInitialised = false;
+
+/**
+ * Initialises the road & side materials from the selected map's textures.
+ * Called lazily on the first initTile() invocation so that settings.map
+ * has been populated by the menu.
+ */
+function ensureMaterials() {
+    if (materialsInitialised) return;
+    materialsInitialised = true;
+
+    const texLoader = new THREE.TextureLoader();
+    const mapKey = settings.map || 'map1';
+    const paths = MAP_TEXTURES[mapKey] || MAP_TEXTURES.map1;
+
+    const roadTex = texLoader.load(paths.road);
+    roadTex.wrapS = THREE.RepeatWrapping;
+    roadTex.wrapT = THREE.RepeatWrapping;
+    roadTex.repeat.set(4, 4);
+
+    const sideTex = texLoader.load(paths.side);
+    sideTex.wrapS = THREE.RepeatWrapping;
+    sideTex.wrapT = THREE.RepeatWrapping;
+    sideTex.repeat.set(8, 8);
+
+    materialRoad = new THREE.MeshStandardMaterial({ map: roadTex });
+    materialSide = new THREE.MeshStandardMaterial({ map: sideTex });
+}
 const roadGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_LANES * TILE_MESH_SIZE);
 const sideGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_SIDE_COLS_LEFT * TILE_MESH_SIZE);
 
@@ -28,6 +64,8 @@ const sideGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_SIDE_COLS_LEFT 
 export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel };
 
 export function initTile(scene, num) {
+    // Ensure map textures are loaded (deferred until settings are available)
+    ensureMaterials();
 
     // --- TILE SETTINGS ---
     var meshSize = TILE_MESH_SIZE;
