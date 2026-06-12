@@ -68,12 +68,15 @@ let _newLifeModelCache = null;
 
 // Cassa model scene — set externally via setCassaModel() before spawning cassas.
 let _cassaModelCache = null;
+let _cassaModelConfig = { name: 'cassa', scale: 0.03 };
 
 // Rock Sphere model scene — set externally via setRockSphereModel() before spawning rock spheres.
 let _rockSphereModelCache = null;
+let _rockSphereModelConfig = { name: 'rock_sphere', scale: 3 };
 
 // Totem model scene — set externally via setTotemModel() before spawning totems.
 let _totemModelCache = null;
+let _totemModelConfig = { name: 'totem', scale: 4 };
 
 // Gear model scene - set externally via setGearModel() before spawning gears.
 let _gearModelCache = null;
@@ -272,8 +275,9 @@ export function setNewLifeModel(model) {
  *
  * @param {THREE.Object3D} model - The root scene from the cassa GLTF.
  */
-export function setCassaModel(model) {
+export function setCassaModel(model, config = {}) {
     _cassaModelCache = model;
+    _cassaModelConfig = { ..._cassaModelConfig, ...config };
 }
 
 /**
@@ -282,8 +286,9 @@ export function setCassaModel(model) {
  *
  * @param {THREE.Object3D} model - The root scene from the rock sphere GLTF.
  */
-export function setRockSphereModel(model) {
+export function setRockSphereModel(model, config = {}) {
     _rockSphereModelCache = model;
+    _rockSphereModelConfig = { ..._rockSphereModelConfig, ...config };
 }
 
 /**
@@ -292,8 +297,9 @@ export function setRockSphereModel(model) {
  *
  * @param {THREE.Object3D} model - The root scene from the totem GLTF.
  */
-export function setTotemModel(model) {
+export function setTotemModel(model, config = {}) {
     _totemModelCache = model;
+    _totemModelConfig = { ..._totemModelConfig, ...config };
 }
 
 /**
@@ -536,13 +542,13 @@ export class Cassa extends THREE.Object3D {
     constructor(xPos, zPos) {
         super();
 
-        this.name = 'cassa';
+        this.name = _cassaModelConfig.name;
 
         // Clone the pre-loaded cassa GLTF model.
         const object = SkeletonUtils.clone(_cassaModelCache);
 
         // Apply transformations FIRST
-        object.scale.set(0.03, 0.03, 0.03);
+        object.scale.setScalar(_cassaModelConfig.scale);
         object.rotation.y = Math.random() * Math.PI * 2;
 
         // Process shadows, grounding, and matrix optimizations
@@ -575,12 +581,12 @@ export class RockSphere extends THREE.Object3D {
     constructor(xPos, zPos) {
         super();
 
-        this.name = 'rock_sphere';
+        this.name = _rockSphereModelConfig.name;
 
         const object = SkeletonUtils.clone(_rockSphereModelCache);
 
         // Apply transformations FIRST
-        object.scale.set(3, 3, 3);
+        object.scale.setScalar(_rockSphereModelConfig.scale);
         object.rotation.y = Math.random() * Math.PI * 2;
 
         // Process shadows, grounding, and matrix optimizations
@@ -611,12 +617,12 @@ export class Totem extends THREE.Object3D {
     constructor(xPos, zPos) {
         super();
 
-        this.name = 'totem';
+        this.name = _totemModelConfig.name;
 
         const object = SkeletonUtils.clone(_totemModelCache);
 
         // Apply transformations FIRST (Added random rotation placeholder for visual variety)
-        object.scale.set(4, 4, 4);
+        object.scale.setScalar(_totemModelConfig.scale);
         object.rotation.y = Math.random() * Math.PI * 2;
 
         // Process shadows, grounding, and matrix optimizations

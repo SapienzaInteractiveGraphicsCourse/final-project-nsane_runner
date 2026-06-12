@@ -76,7 +76,7 @@ class Settings {
      */
     init() {
         this.character  = localStorage.getItem('nsane_character')  || 'crash';
-        this.map        = localStorage.getItem('nsane_map')        || 'beach';
+        this.map        = localStorage.getItem('nsane_map')        || 'map1';
         this.difficulty = localStorage.getItem('nsane_difficulty') || 'medium';
 
         const preset = DIFFICULTY_PRESETS[this.difficulty] || DIFFICULTY_PRESETS.medium;

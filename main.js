@@ -114,6 +114,30 @@ let characterManager;
 const loader = new GLTFLoader();
 const fbxLoader = new FBXLoader();
 
+const MAP_BOUNDARY_ASSETS = {
+    map1: {
+        cassa: { path: '/maps/map 1/cassa/scene.gltf', name: 'cassa', scale: 0.03 },
+        rockSphere: { path: '/maps/map 1/rock_sphere.glb', name: 'rock_sphere', scale: 3 },
+        totem: { path: '/maps/map 1/totem.glb', name: 'totem', scale: 4 },
+    },
+    map2: {
+        cassa: { path: '/maps/map 2/statua_atzeca.glb', name: 'statua_atzeca', scale: 4 },
+        rockSphere: { path: '/maps/map 2/statua_imbruttita.glb', name: 'statua_imbruttita', scale: 4 },
+        totem: { path: '/maps/map 2/tree.glb', name: 'tree', scale: 4 },
+    },
+    map3: {
+        cassa: { path: '/maps/map 3/navicella.glb', name: 'navicella', scale: 4 },
+        rockSphere: { path: '/maps/map 3/distributore_futuristico.glb', name: 'distributore_futuristico', scale: 4 },
+        totem: { path: '/maps/map 3/electric_candel.glb', name: 'electric_candel', scale: 4 },
+    },
+};
+
+function getSelectedMapKey() {
+    if (settings.map === 'map1') return 'map1';
+    if (settings.map === 'map2') return 'map2';
+    return 'map3';
+}
+
 /**
  * Loads all game assets in parallel using Promise.all.
  *
@@ -126,6 +150,7 @@ const fbxLoader = new FBXLoader();
 function loadAssets() {
     const loadGLTF = (path) =>
         new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
+    const boundaryAssets = MAP_BOUNDARY_ASSETS[getSelectedMapKey()];
 
     return Promise.all([
         selectedCharacter === 'crash' ? character.load(loader) : character.load(fbxLoader),
@@ -133,11 +158,20 @@ function loadAssets() {
         loadGLTF('/wumpa/scene.gltf'),
         loadGLTF('/gem/gems.glb'),
         loadGLTF('/newlife/newlife.glb'),
-        loadGLTF("/textures/grass/rock_sphere.glb"),
-        loadGLTF("/textures/grass/cassa/scene.gltf"),
-        loadGLTF("/textures/grass/totem.glb"),
+        loadGLTF(boundaryAssets.rockSphere.path),
+        loadGLTF(boundaryAssets.cassa.path),
+        loadGLTF(boundaryAssets.totem.path),
         loadGLTF("/gear/gear.glb")
-    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf]) => ({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }));
+    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf]) => ({
+        wumpaGltf,
+        gemGlb,
+        newLifeGltf,
+        rockSphereGltf,
+        cassaGltf,
+        totemGltf,
+        gearGltf,
+        boundaryAssets,
+    }));
 }
 
 
@@ -186,7 +220,7 @@ waitForPlay()
 
         return loadAssets();
     })
-    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf }) => {
+    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf, boundaryAssets }) => {
 
         // --- LIVES (from difficulty) ---
         window.lives = settings.maxLives;
@@ -202,13 +236,13 @@ waitForPlay()
         setNewLifeModel(newLifeGltf.scene);
 
         // --- WEIRD CASSA
-        setCassaModel(cassaGltf.scene);
+        setCassaModel(cassaGltf.scene, boundaryAssets.cassa);
 
         // --- ROCK SPHERE
-        setRockSphereModel(rockSphereGltf.scene);
+        setRockSphereModel(rockSphereGltf.scene, boundaryAssets.rockSphere);
 
         // --- TOTEM
-        setTotemModel(totemGltf.scene);
+        setTotemModel(totemGltf.scene, boundaryAssets.totem);
 
         setGearModel(gearGltf.scene);
 

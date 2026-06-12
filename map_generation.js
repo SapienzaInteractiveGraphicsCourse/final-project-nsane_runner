@@ -12,6 +12,12 @@ const MAP_TEXTURES = {
 };
 import { registerCollisionObject, unregisterCollisionObject } from './check_collisions.js';
 
+function getSelectedMapKey() {
+    if (settings.map === 'map1') return 'map1';
+    if (settings.map === 'map2') return 'map2';
+    return 'map3';
+}
+
 // --- Module-level tile tracking ---
 // Every tile created by initTile is pushed here so removeTiles can manage them.
 export const activeTiles = [];
@@ -41,8 +47,7 @@ function ensureMaterials() {
     materialsInitialised = true;
 
     const texLoader = new THREE.TextureLoader();
-    const mapKey = settings.map || 'map1';
-    const paths = MAP_TEXTURES[mapKey] || MAP_TEXTURES.map1;
+    const paths = MAP_TEXTURES[getSelectedMapKey()];
 
     const roadTex = texLoader.load(paths.road);
     roadTex.wrapS = THREE.RepeatWrapping;
