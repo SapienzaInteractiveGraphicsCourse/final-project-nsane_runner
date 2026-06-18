@@ -66,17 +66,8 @@ const _gemModelCaches = {};
 // New Life model scene — set externally via setNewLifeModel() before spawning dropped lives.
 let _newLifeModelCache = null;
 
-// Cassa model scene — set externally via setCassaModel() before spawning cassas.
-let _cassaModelCache = null;
-let _cassaModelConfig = { name: 'cassa', scale: 0.03 };
-
-// Rock Sphere model scene — set externally via setRockSphereModel() before spawning rock spheres.
-let _rockSphereModelCache = null;
-let _rockSphereModelConfig = { name: 'rock_sphere', scale: 3 };
-
-// Totem model scene — set externally via setTotemModel() before spawning totems.
-let _totemModelCache = null;
-let _totemModelConfig = { name: 'totem', scale: 4 };
+// Boundary model scenes — set externally via setBoundaryModels() before spawning decorations.
+const _boundaryModelCaches = [];
 
 // Gear model scene - set externally via setGearModel() before spawning gears.
 let _gearModelCache = null;
@@ -270,36 +261,22 @@ export function setNewLifeModel(model) {
 }
 
 /**
- * Injects the pre-loaded cassa GLTF scene so Cassa instances can clone it.
- * Must be called before the first Cassa is constructed.
+ * Injects the pre-loaded boundary GLTF scenes so BoundaryObject instances can clone them.
+ * Must be called before the first BoundaryObject is constructed.
  *
- * @param {THREE.Object3D} model - The root scene from the cassa GLTF.
+ * @param {{model: THREE.Object3D, config: {name: string, scale: number}}[]} entries
  */
-export function setCassaModel(model, config = {}) {
-    _cassaModelCache = model;
-    _cassaModelConfig = { ..._cassaModelConfig, ...config };
-}
-
-/**
- * Injects the pre-loaded rock sphere GLTF scene so RockSphere instances can clone it.
- * Must be called before the first RockSphere is constructed.
- *
- * @param {THREE.Object3D} model - The root scene from the rock sphere GLTF.
- */
-export function setRockSphereModel(model, config = {}) {
-    _rockSphereModelCache = model;
-    _rockSphereModelConfig = { ..._rockSphereModelConfig, ...config };
-}
-
-/**
- * Injects the pre-loaded totem GLTF scene so Totem instances can clone it.
- * Must be called before the first Totem is constructed.
- *
- * @param {THREE.Object3D} model - The root scene from the totem GLTF.
- */
-export function setTotemModel(model, config = {}) {
-    _totemModelCache = model;
-    _totemModelConfig = { ..._totemModelConfig, ...config };
+export function setBoundaryModels(entries) {
+    _boundaryModelCaches.length = 0;
+    for (const entry of entries) {
+        _boundaryModelCaches.push({
+            model: entry.model,
+            config: {
+                name: entry.config.name,
+                scale: entry.config.scale,
+            },
+        });
+    }
 }
 
 /**
@@ -527,111 +504,37 @@ function setupStaticModel(object) {
 }
 
 /**
- * A decorative cassa (wooden crate) placed on the side strips of the map.
- * Uses absolute world coordinates (xPos, zPos) because it lives outside the
- * playable grid and does not participate in collision detection.
+ * A decorative object placed on the side strips of the map.
+ * Uses absolute world coordinates (xPos, zPos) and does not participate in collision detection.
  *
  * @extends THREE.Object3D
  */
-export class Cassa extends THREE.Object3D {
+export class BoundaryObject extends THREE.Object3D {
 
     /**
+     * @param {number} modelIndex - Index of the preloaded boundary model.
      * @param {number} xPos - Absolute world X position.
      * @param {number} zPos - Absolute world Z position.
      */
-    constructor(xPos, zPos) {
+    constructor(modelIndex, xPos, zPos) {
         super();
 
-        this.name = _cassaModelConfig.name;
+        const entry = _boundaryModelCaches[modelIndex];
+        if (!entry) {
+            console.warn(`[BoundaryObject] Missing boundary model at index ${modelIndex}`);
+            return;
+        }
 
-        // Clone the pre-loaded cassa GLTF model.
-        const object = SkeletonUtils.clone(_cassaModelCache);
+        this.name = entry.config.name;
 
-        // Apply transformations FIRST
-        object.scale.setScalar(_cassaModelConfig.scale);
+        const object = SkeletonUtils.clone(entry.model);
+        object.scale.setScalar(entry.config.scale);
         object.rotation.y = Math.random() * Math.PI * 2;
 
-        // Process shadows, grounding, and matrix optimizations
         setupStaticModel(object);
 
         this.add(object);
-
-        // Place directly at the computed world position.
         this.position.set(xPos, 0, zPos);
-
-        // Optimize the parent container as well
-        this.matrixAutoUpdate = false;
-        this.updateMatrix();
-    }
-}
-
-/**
- * A decorative rock sphere placed on the side strips of the map.
- * Uses absolute world coordinates (xPos, zPos) — purely decorative,
- * no hitbox or collision logic.
- *
- * @extends THREE.Object3D
- */
-export class RockSphere extends THREE.Object3D {
-
-    /**
-     * @param {number} xPos - Absolute world X position.
-     * @param {number} zPos - Absolute world Z position.
-     */
-    constructor(xPos, zPos) {
-        super();
-
-        this.name = _rockSphereModelConfig.name;
-
-        const object = SkeletonUtils.clone(_rockSphereModelCache);
-
-        // Apply transformations FIRST
-        object.scale.setScalar(_rockSphereModelConfig.scale);
-        object.rotation.y = Math.random() * Math.PI * 2;
-
-        // Process shadows, grounding, and matrix optimizations
-        setupStaticModel(object);
-
-        this.add(object);
-
-        this.position.set(xPos, 0, zPos);
-
-        this.matrixAutoUpdate = false;
-        this.updateMatrix();
-    }
-}
-
-/**
- * A decorative totem placed on the side strips of the map.
- * Uses absolute world coordinates (xPos, zPos) — purely decorative,
- * no hitbox or collision logic.
- *
- * @extends THREE.Object3D
- */
-export class Totem extends THREE.Object3D {
-
-    /**
-     * @param {number} xPos - Absolute world X position.
-     * @param {number} zPos - Absolute world Z position.
-     */
-    constructor(xPos, zPos) {
-        super();
-
-        this.name = _totemModelConfig.name;
-
-        const object = SkeletonUtils.clone(_totemModelCache);
-
-        // Apply transformations FIRST (Added random rotation placeholder for visual variety)
-        object.scale.setScalar(_totemModelConfig.scale);
-        object.rotation.y = Math.random() * Math.PI * 2;
-
-        // Process shadows, grounding, and matrix optimizations
-        setupStaticModel(object);
-
-        this.add(object);
-
-        this.position.set(xPos, 0, zPos);
-
         this.matrixAutoUpdate = false;
         this.updateMatrix();
     }

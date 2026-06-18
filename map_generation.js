@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, Cassa, RockSphere, Totem, Gear, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './objects.js';
+import { WumpaFruit, NitroBox, StandardBox, BurubugaBox, NewLife, QuestionBox, BoundaryObject, Gear, setWumpaModel, setGemModel, setNewLifeModel, setBoundaryModels, setGearModel } from './objects.js';
 import { gear_animation } from './objects_animations.js';
 import { settings } from './settings.js';
 
@@ -11,12 +11,6 @@ const MAP_TEXTURES = {
     map3: { road: '/maps/map 3/greystone.png', side: '/maps/map 3/redsand.png' },
 };
 import { registerCollisionObject, unregisterCollisionObject } from './check_collisions.js';
-
-function getSelectedMapKey() {
-    if (settings.map === 'map1') return 'map1';
-    if (settings.map === 'map2') return 'map2';
-    return 'map3';
-}
 
 // --- Module-level tile tracking ---
 // Every tile created by initTile is pushed here so removeTiles can manage them.
@@ -47,7 +41,7 @@ function ensureMaterials() {
     materialsInitialised = true;
 
     const texLoader = new THREE.TextureLoader();
-    const paths = MAP_TEXTURES[getSelectedMapKey()];
+    const paths = MAP_TEXTURES[settings.selectedMapKey];
 
     const roadTex = texLoader.load(paths.road);
     roadTex.wrapS = THREE.RepeatWrapping;
@@ -66,7 +60,7 @@ const roadGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_LANES * TILE_ME
 const sideGeometry = new THREE.BoxGeometry(TILE_WIDTH_X, 1, TILE_SIDE_COLS_LEFT * TILE_MESH_SIZE);
 
 // Re-export so callers (e.g. main.js) don't need to change their import path.
-export { setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel };
+export { setWumpaModel, setGemModel, setNewLifeModel, setBoundaryModels, setGearModel };
 
 export function initTile(scene, num) {
     // Ensure map textures are loaded (deferred until settings are available)
@@ -468,17 +462,8 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                     zPos += (Math.random() - 0.5) * 3;
                 }
 
-                // Scegliamo casualmente uno dei tre modelli decorativi
-                const roll = Math.random();
-                let decoration;
-
-                if (roll < 0.33) {
-                    decoration = new Cassa(xPos, zPos);
-                } else if (roll < 0.66) {
-                    decoration = new RockSphere(xPos, zPos);
-                } else {
-                    decoration = new Totem(xPos, zPos);
-                }
+                const modelIndex = Math.floor(Math.random() * 3);
+                const decoration = new BoundaryObject(modelIndex, xPos, zPos);
 
                 if (decoration) {
                     decoration.position.y = 0;

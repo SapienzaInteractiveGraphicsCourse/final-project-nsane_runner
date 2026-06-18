@@ -4,7 +4,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CrashManagement, CortexManagement } from './character_management.js';
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
-import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setCassaModel, setRockSphereModel, setTotemModel, setGearModel } from './map_generation.js';
+import { initTile, setWumpaModel, setGemModel, setNewLifeModel, setBoundaryModels, setGearModel } from './map_generation.js';
 import { checkWumpaCollisions, checkBoxCollisions, checkDroppedLifeCollisions, checkDroppedGemCollisions, checkGearCollisions, updateHitboxHelpers } from './check_collisions.js';
 import { removeGemType } from './objects.js';
 import { Crash, Cortex, AkuAku } from './characters.js';
@@ -114,30 +114,6 @@ let characterManager;
 const loader = new GLTFLoader();
 const fbxLoader = new FBXLoader();
 
-const MAP_BOUNDARY_ASSETS = {
-    map1: {
-        cassa: { path: '/maps/map 1/cassa/scene.gltf', name: 'cassa', scale: 0.03 },
-        rockSphere: { path: '/maps/map 1/rock_sphere.glb', name: 'rock_sphere', scale: 3 },
-        totem: { path: '/maps/map 1/totem.glb', name: 'totem', scale: 4 },
-    },
-    map2: {
-        cassa: { path: '/maps/map 2/statua_atzeca.glb', name: 'statua_atzeca', scale: 4 },
-        rockSphere: { path: '/maps/map 2/statua_imbruttita.glb', name: 'statua_imbruttita', scale: 4 },
-        totem: { path: '/maps/map 2/tree.glb', name: 'tree', scale: 4 },
-    },
-    map3: {
-        cassa: { path: '/maps/map 3/navicella.glb', name: 'navicella', scale: 4 },
-        rockSphere: { path: '/maps/map 3/distributore_futuristico.glb', name: 'distributore_futuristico', scale: 4 },
-        totem: { path: '/maps/map 3/electric_candel.glb', name: 'electric_candel', scale: 4 },
-    },
-};
-
-function getSelectedMapKey() {
-    if (settings.map === 'map1') return 'map1';
-    if (settings.map === 'map2') return 'map2';
-    return 'map3';
-}
-
 /**
  * Loads all game assets in parallel using Promise.all.
  *
@@ -150,7 +126,7 @@ function getSelectedMapKey() {
 function loadAssets() {
     const loadGLTF = (path) =>
         new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
-    const boundaryAssets = MAP_BOUNDARY_ASSETS[getSelectedMapKey()];
+    const boundaryAssets = settings.boundaryAssets;
 
     return Promise.all([
         selectedCharacter === 'crash' ? character.load(loader) : character.load(fbxLoader),
@@ -158,17 +134,17 @@ function loadAssets() {
         loadGLTF('/wumpa/scene.gltf'),
         loadGLTF('/gem/gems.glb'),
         loadGLTF('/newlife/newlife.glb'),
-        loadGLTF(boundaryAssets.rockSphere.path),
-        loadGLTF(boundaryAssets.cassa.path),
-        loadGLTF(boundaryAssets.totem.path),
+        loadGLTF(boundaryAssets.object1.path),
+        loadGLTF(boundaryAssets.object2.path),
+        loadGLTF(boundaryAssets.object3.path),
         loadGLTF("/gear/gear.glb")
-    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf]) => ({
+    ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, object1Gltf, object2Gltf, object3Gltf, gearGltf]) => ({
         wumpaGltf,
         gemGlb,
         newLifeGltf,
-        rockSphereGltf,
-        cassaGltf,
-        totemGltf,
+        object1Gltf,
+        object2Gltf,
+        object3Gltf,
         gearGltf,
         boundaryAssets,
     }));
@@ -220,7 +196,7 @@ waitForPlay()
 
         return loadAssets();
     })
-    .then(({ wumpaGltf, gemGlb, newLifeGltf, rockSphereGltf, cassaGltf, totemGltf, gearGltf, boundaryAssets }) => {
+    .then(({ wumpaGltf, gemGlb, newLifeGltf, object1Gltf, object2Gltf, object3Gltf, gearGltf, boundaryAssets }) => {
 
         // --- LIVES (from difficulty) ---
         window.lives = settings.maxLives;
@@ -235,14 +211,12 @@ waitForPlay()
         // --- NEW LIFE ---
         setNewLifeModel(newLifeGltf.scene);
 
-        // --- WEIRD CASSA
-        setCassaModel(cassaGltf.scene, boundaryAssets.cassa);
-
-        // --- ROCK SPHERE
-        setRockSphereModel(rockSphereGltf.scene, boundaryAssets.rockSphere);
-
-        // --- TOTEM
-        setTotemModel(totemGltf.scene, boundaryAssets.totem);
+        // --- BOUNDARY OBJECTS ---
+        setBoundaryModels([
+            { model: object1Gltf.scene, config: boundaryAssets.object1 },
+            { model: object2Gltf.scene, config: boundaryAssets.object2 },
+            { model: object3Gltf.scene, config: boundaryAssets.object3 },
+        ]);
 
         setGearModel(gearGltf.scene);
 
