@@ -6,7 +6,7 @@ import { DroppedWumpa, DroppedLife, DroppedGem, getRandomGemType } from './objec
 import { Sound } from './sounds.js';
 import { stopObjectTweens } from './tween_registry.js';
 
-// ── Pre-instantiated sound effects (singletons) ──────────────────────────
+// Pre-instantiated sound effects
 const wumpaSound = new Sound('wumpa.wav');
 const crateBreakSound = new Sound('createBreak.wav');
 const akuakuSound = new Sound('akuaku.wav');
@@ -123,7 +123,7 @@ export function checkBoxCollisions(scene) {
             if (node.name === 'standard_box') {
                 if (characterHitbox.intersectsBox(node.userData.hitbox)) {
                     if (window.character.isRotating) {
-                        // --- SPIN ATTACK: break the box ---
+                        //  SPIN ATTACK: break the box 
                         console.log(`${node.name} broken!`);
                         crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
@@ -139,7 +139,7 @@ export function checkBoxCollisions(scene) {
 
                         toRemove.push(node);
                     } else {
-                        // --- NO SPIN: take damage ---
+                        //  NO SPIN: take damage 
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
@@ -162,7 +162,7 @@ export function checkBoxCollisions(scene) {
             } else if (node.name === 'burubuga_box') {
                 if (characterHitbox.intersectsBox(node.userData.hitbox)) {
                     if (window.character.isRotating) {
-                        // --- SPIN ATTACK: break the box ---
+                        //  SPIN ATTACK: break the box 
                         console.log(`${node.name} broken!`);
                         crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
@@ -174,7 +174,6 @@ export function checkBoxCollisions(scene) {
 
                                 // Compensate for the parent mesh's scale AND rotation
                                 // so Aku Aku looks identical regardless of character.
-                                // Crash: scale 1, rotY 0 | Cortex: scale 0.004, rotY π/2
                                 const parentScale = window.character.mesh.scale.x;
                                 const invScale = 1 / parentScale;
                                 const parentRotY = window.character.mesh.rotation.y;
@@ -184,9 +183,9 @@ export function checkBoxCollisions(scene) {
                                 const cosR = Math.cos(parentRotY);
                                 const sinR = Math.sin(parentRotY);
                                 akuaku.mesh.position.set(
-                                    ( wx * cosR - wz * sinR) * invScale,
-                                      wy * invScale,
-                                    ( wx * sinR + wz * cosR) * invScale
+                                    (wx * cosR - wz * sinR) * invScale,
+                                    wy * invScale,
+                                    (wx * sinR + wz * cosR) * invScale
                                 );
 
                                 // Counter-rotate the desired world-space facing
@@ -206,7 +205,7 @@ export function checkBoxCollisions(scene) {
 
                         toRemove.push(node);
                     } else {
-                        // --- NO SPIN: take damage ---
+                        //  NO SPIN: take damage 
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
@@ -251,7 +250,7 @@ export function checkBoxCollisions(scene) {
             } else if (node.name === 'new_life') {
                 if (characterHitbox.intersectsBox(node.userData.hitbox)) {
                     if (window.character.isRotating) {
-                        // --- SPIN ATTACK: break the box ---
+                        //  SPIN ATTACK: break the box 
                         console.log(`${node.name} broken!`);
                         crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
@@ -267,7 +266,7 @@ export function checkBoxCollisions(scene) {
 
                         toRemove.push(node);
                     } else {
-                        // --- NO SPIN: take damage ---
+                        //  NO SPIN: take damage 
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
@@ -290,7 +289,7 @@ export function checkBoxCollisions(scene) {
             } else if (node.name === 'question_box') {
                 if (characterHitbox.intersectsBox(node.userData.hitbox)) {
                     if (window.character.isRotating) {
-                        // --- SPIN ATTACK: break the box ---
+                        //  SPIN ATTACK: break the box 
                         console.log(`${node.name} broken!`);
                         crateBreakSound.start();
                         window.brokenBoxes = (window.brokenBoxes || 0) + 1;
@@ -345,7 +344,7 @@ export function checkBoxCollisions(scene) {
 
                         toRemove.push(node);
                     } else {
-                        // --- NO SPIN: take damage ---
+                        //  NO SPIN: take damage 
                         if (window.akuaku && window.akuaku.mesh) {
                             window.character.mesh.remove(window.akuaku.mesh);
                             window.akuaku = null;
@@ -471,7 +470,7 @@ export function checkGearCollisions(scene) {
     });
 }
 
-// ── Hitbox visualisation helpers ──────────────────────────────────────────
+// Hitbox visualisation helpers
 // Managed set of Box3Helper instances currently in the scene.
 const _hitboxHelpers = new Set();
 
@@ -483,7 +482,7 @@ const _hitboxHelpers = new Set();
  * @param {THREE.Scene} scene
  */
 export function updateHitboxHelpers(scene) {
-    // --- Tear down previous frame's helpers (always, to keep in sync) ---
+    //  Tear down previous frame's helpers (always, to keep in sync) 
     if (_hitboxHelpers.size > 0) {
         for (const h of _hitboxHelpers) {
             scene.remove(h);
@@ -495,7 +494,7 @@ export function updateHitboxHelpers(scene) {
 
     if (!window.showHitboxes) return;
 
-    // --- Character hitbox (cyan) ---
+    //  Character hitbox (cyan) 
     if (window.character?.mesh) {
         const charBox = window.character.get_hitbox();
         const charHelper = new THREE.Box3Helper(charBox, 0x00ffff);
@@ -504,7 +503,7 @@ export function updateHitboxHelpers(scene) {
         _hitboxHelpers.add(charHelper);
     }
 
-    // --- Object hitboxes (green for collectibles, red for hazards) ---
+    //  Object hitboxes (green for collectibles, red for hazards) 
     const hazardNames = new Set([
         'nitro_box', 'gear', 'standard_box', 'burubuga_box', 'question_box', 'new_life'
     ]);

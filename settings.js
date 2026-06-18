@@ -61,11 +61,11 @@ export const MAP_BOUNDARY_ASSETS = {
 };
 
 /**
- * The Settings singleton — holds every game-session parameter.
+ * The Settings class - holds every game-session parameter.
  */
 class Settings {
     constructor() {
-        // --- Menu selections ---
+        // menu selections
         /** @type {'crash'|'cortex'} */
         this.character = 'crash';
 
@@ -75,18 +75,17 @@ class Settings {
         /** @type {'easy'|'medium'|'hard'} */
         this.difficulty = 'medium';
 
-        // --- Derived difficulty parameters ---
+        // Derived difficulty parameters
         this.baseSpeed = DIFFICULTY_PRESETS.medium.baseSpeed;
         this.maxSpeed = DIFFICULTY_PRESETS.medium.maxSpeed;
         this.acceleration = DIFFICULTY_PRESETS.medium.acceleration;
         this.maxLives = DIFFICULTY_PRESETS.medium.maxLives;
         this.spawnDensity = DIFFICULTY_PRESETS.medium.spawnDensity;
 
-        // --- Runtime state ---
-        /** Distance the character has covered (world units). Updated by main loop. */
+        // Runtime state - Distance the character has covered (world units). Updated by main loop.
         this.distanceTravelled = 0;
 
-        /** Current computed score. */
+        // Current computed score.
         this.score = 0;
     }
 
@@ -113,10 +112,7 @@ class Settings {
         );
     }
 
-    // ------------------------------------------------------------------
-    //  DYNAMIC SPEED
-    // ------------------------------------------------------------------
-
+    // DYNAMIC SPEED
     /**
      * Returns the current forward speed given how far the player has travelled.
      *
@@ -151,10 +147,7 @@ class Settings {
         return MAP_BOUNDARY_ASSETS[this.selectedMapKey];
     }
 
-    // ------------------------------------------------------------------
-    //  SCORE
-    // ------------------------------------------------------------------
-
+    // SCORE
     /**
      * Calculates a composite score from distance, wumpas, and boxes.
      *
@@ -163,7 +156,6 @@ class Settings {
      * @returns {number}
      */
     computeScore(wumpaCount, boxCount) {
-        // 1 point per 10 world-units + 50 per wumpa + 100 per box
         this.score = Math.floor(this.distanceTravelled / 10)
             + wumpaCount * 50
             + boxCount * 100;
@@ -171,5 +163,5 @@ class Settings {
     }
 }
 
-/** Exported singleton — import this everywhere. */
+// export Settings everywhere
 export const settings = new Settings();

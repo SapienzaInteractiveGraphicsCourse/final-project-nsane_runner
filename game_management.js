@@ -29,12 +29,12 @@ function initPauseMenu() {
     container.innerHTML = pauseHtml.trim();
     document.body.appendChild(container.firstElementChild);
 
-    // ── Resume button ────────────────────────────────────────────────────
+    //  Resume button 
     document.getElementById('resume-btn').addEventListener('click', () => {
         if (isPaused) pauseGame();
     });
 
-    // ── Toggle Music button ──────────────────────────────────────────────
+    //  Toggle Music button 
     document.getElementById('toggle-music-btn').addEventListener('click', () => {
         const playing = toggleMainTheme();
         const btn = document.getElementById('toggle-music-btn');
@@ -48,7 +48,7 @@ function initPauseMenu() {
         }
     });
 
-    // ── Toggle SFX button ────────────────────────────────────────────────
+    //  Toggle SFX button 
     document.getElementById('toggle-sfx-btn').addEventListener('click', () => {
         const enabled = toggleSfx();
         const btn = document.getElementById('toggle-sfx-btn');
@@ -62,10 +62,10 @@ function initPauseMenu() {
         }
     });
 
-    // ── Main Menu button ─────────────────────────────────────────────────
+    //  Main Menu button
     document.getElementById('main-menu-btn').addEventListener('click', goToMainMenu);
 
-    // ── Hitbox toggle button ─────────────────────────────────────────────
+    //  Hitbox toggle button
     document.getElementById('hitbox-btn').addEventListener('click', () => {
         window.showHitboxes = !window.showHitboxes;
         const btn = document.getElementById('hitbox-btn');
@@ -106,7 +106,7 @@ function initGameOverMenu() {
     document.body.appendChild(container.firstElementChild);
 
 
-    // ── Main Menu — go back to the splash screen ─────────────────────────
+    //  Main Menu — go back to the splash screen
     document.getElementById('gameover-menu-btn').addEventListener('click', goToMainMenu);
 
     gameOverMenuInitialized = true;

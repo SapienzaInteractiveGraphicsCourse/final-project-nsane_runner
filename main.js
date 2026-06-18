@@ -14,47 +14,51 @@ import { settings } from './settings.js';
 
 const BASE = import.meta.env.BASE_URL;
 
-// ---- HUD: inject template + CSS (same pattern as pause.html / pause.css) ----
+// Set up the Heads-Up Display by loading the raw HTML and attaching its styling
 import './hud.css';
 import hudHtml from './hud.html?raw';
 
 (function initHud() {
     const container = document.createElement('div');
     container.innerHTML = hudHtml.trim();
-    // Inject all root-level elements (the #hud bar AND the #gem-tracker)
+    // Move everything from our temporary container straight onto the live page body
     while (container.firstElementChild) {
         document.body.appendChild(container.firstElementChild);
     }
 })();
 
-// ---- HUD helpers (exposed globally so game modules can call them) ----
+// Trigger a quick CSS animation bounce whenever a stat changes
 function hudPop(el) {
     el.classList.remove('pop');
-    void el.offsetWidth;           // force reflow
+    void el.offsetWidth;           // Force the browser to reset the element's state immediately
     el.classList.add('pop');
 }
 
+// Update the counter on the screen when the player grabs a fruit
 window.setHudWumpa = function (count) {
     const el = document.getElementById('wumpa-count');
     if (el) { el.textContent = count; hudPop(el); }
 };
 
+// Update the player's remaining lives on the screen
 window.setHudLives = function (count) {
     const el = document.getElementById('lives-count');
     if (el) { el.textContent = count; hudPop(el); }
 };
 
+// Keep track of how many crates have been smashed
 window.setHudBoxes = function (count) {
     const el = document.getElementById('boxes-count');
     if (el) { el.textContent = count; hudPop(el); }
 };
 
+// Display the player's overall score formatted with commas
 window.setHudScore = function (score) {
     const el = document.getElementById('score-count');
     if (el) el.textContent = score.toLocaleString();
 };
 
-// Map gem_type names → HUD element IDs
+// Link the internal item names to their specific HTML container tags
 const GEM_HUD_MAP = {
     gem_blue: 'hud-gem-blue',
     gem_green: 'hud-gem-green',
@@ -63,10 +67,7 @@ const GEM_HUD_MAP = {
     gem_yellow: 'hud-gem-yellow',
 };
 
-/**
- * Reveals a collected gem in the bottom tracker.
- * @param {string} gemType - e.g. 'gem_purple'
- */
+// Brighten up a gem icon on the interface once the player collects it
 window.setHudGem = function (gemType) {
     const id = GEM_HUD_MAP[gemType];
     if (!id) return;
@@ -76,61 +77,49 @@ window.setHudGem = function (gemType) {
     }
 };
 
-
-
-
-// ---- THREE.js scene setup ----
+// Core 3D engine setup including viewport size, rendering quality, and positioning
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 camera.position.set(-11, 14, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Cap the resolution for stable performance on high-res displays
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+controls.enableDamping = true; // Smooth out the manual camera rotation movements
 
-// Lights
+// Put down basic environmental lighting so the scene elements are visible
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
 directionalLight.position.set(5, 10, 7);
 scene.add(directionalLight);
 
-
-// Hitbox debug visualisation (toggled via the pause menu button)
+// Global toggle for rendering collision boundaries during testing
 window.showHitboxes = false;
 
-// Wumpa collection score
+// Tracker for the total number of fruits gathered
 let wumpaScore = 0;
 
-// Main character + manager — created after the player clicks Play
-// so the menu selection from localStorage is available.
+// Global references for the active runner and its controller logic
 let selectedCharacter;
 let character;
 let characterManager;
 
-//this code will have to be further optimized
+// Loaders for handling different types of 3D source files
 const loader = new GLTFLoader();
 const fbxLoader = new FBXLoader();
 
-/**
- * Loads all game assets in parallel using Promise.all.
- *
- * Assets loaded here:
- *  - Character model (Crash via GLTFLoader, Cortex via FBXLoader)
- *  - /wumpa/scene.gltf  → Wumpa fruit collectible model
- *
- * @returns {Promise<{ wumpaGltf: GLTF }>}
- */
+// Fetch all independent models at the same time to speed up the loading screen phase
 function loadAssets() {
     const loadGLTF = (path) =>
         new Promise((resolve, reject) => loader.load(path, resolve, undefined, reject));
     const boundaryAssets = settings.boundaryAssets;
 
     return Promise.all([
+        // Use the correct format loader depending on which character was selected
         selectedCharacter === 'crash' ? character.load(loader) : character.load(fbxLoader),
         AkuAku.load(loader),
         loadGLTF(`${BASE}wumpa/scene.gltf`),
@@ -152,43 +141,30 @@ function loadAssets() {
     }));
 }
 
-
-// --- WAIT FOR PLAY (menu selection) ---
-// Returns a Promise that resolves when the player clicks "Play Game"
-// after selecting character, map, and difficulty from the menu.
-// Also handles auto-restart: if nsane_restart is set in localStorage
-// (by the Restart / Play Again buttons), skip the splash screen and
-// resolve immediately using the previously saved selections.
+// Keep the code waiting until the main menu choices are complete or bypass if restarting
 function waitForPlay() {
     return new Promise((resolve) => {
-        // ── Auto-restart path (skip splash) ──────────────────────────────
+        // Skip the main menu and load straight in if the player chose to restart
         if (localStorage.getItem('nsane_restart') === 'true') {
             localStorage.removeItem('nsane_restart');
-
-            // Selections are still in localStorage from the original Play
             settings.init();
             resolve();
             return;
         }
 
-        // ── Normal path (wait for the player to click Play) ──────────────
+        // Wait until the user actually interacts and selects their options on the menu
         window.addEventListener('nsane-play', () => {
-            // Initialise the Settings singleton from localStorage
             settings.init();
             resolve();
         }, { once: true });
     });
 }
 
-// --- BOOTSTRAP ---
-// 1. Wait for the player to click Play (so we know their character choice).
-// 2. Create the character + manager based on the selection.
-// 3. Load all assets in parallel.
-// 4. Inject models, generate the map, add the character, and start.
+// Main execution block that coordinates configuration, assets, map population, and loop launching
 waitForPlay()
     .then(() => {
-        // Now localStorage has the player's selections — create character
-        selectedCharacter = settings.character;   // 'crash' or 'cortex'
+        // Read choices from storage and instantiate the appropriate class types
+        selectedCharacter = settings.character;
         character = selectedCharacter === 'cortex' ? new Cortex() : new Crash();
         window.character = character;
 
@@ -200,101 +176,77 @@ waitForPlay()
     })
     .then(({ wumpaGltf, gemGlb, newLifeGltf, object1Gltf, object2Gltf, object3Gltf, gearGltf, boundaryAssets }) => {
 
-        // --- LIVES (from difficulty) ---
+        // Establish health limits matching the selected difficulty level
         window.lives = settings.maxLives;
         if (window.setHudLives) window.setHudLives(window.lives);
 
-        // --- WUMPA ---
+        // Distribute the loaded model references down to the map generator script
         setWumpaModel(wumpaGltf.scene);
-
-        // --- GEM ---
         setGemModel(gemGlb.scene);
-
-        // --- NEW LIFE ---
         setNewLifeModel(newLifeGltf.scene);
-
-        // --- BOUNDARY OBJECTS ---
         setBoundaryModels([
             { model: object1Gltf.scene, config: boundaryAssets.object1 },
             { model: object2Gltf.scene, config: boundaryAssets.object2 },
             { model: object3Gltf.scene, config: boundaryAssets.object3 },
         ]);
-
         setGearModel(gearGltf.scene);
 
-        // --- MAP ---
-        // Generate the first batch of tiles (tile 0 is the safe starting platform).
+        // Generate the first three segments of the infinite track
         initTile(scene, 3);
 
-
-        // --- CHARACTER ---
+        // Position the runner on the map and focus the controls target
         scene.add(character.mesh);
         controls.target.set(0, 1, 0);
 
-        // Start the forward movement animation
+        // Kick off the automated running animations and key inputs
         characterManager.animations.moveCharacterForward(window.character, scene, camera);
-
-        // Initialize character movements keyboard listener
         characterManager.characterMovements(character);
 
-        // Start the main theme music
+        // Play the theme song and start drawing frames
         startMainTheme();
-
-        // Start the render / game loop
         animate();
 
-        // Hide splash screen now that everything is ready
+        // Remove the loading splash background to show the interactive game
         const splash = document.getElementById('splash-screen');
         if (splash) splash.classList.add('hidden');
 
         console.log('Game started!');
-
     })
     .catch((error) => console.error('Failed to load assets:', error));
 
-
-
-
+// The primary runtime loop rendering frames and checking world behaviors
 function animate() {
     requestAnimationFrame(animate);
 
     if (!isPaused) {
-        // Update active Tweens
+        // Progress any ongoing smooth object movements
         TWEEN.update();
 
-        // Check wumpa fruit collisions
+        // Run overlap testing for collectibles, hazards, and items
         wumpaScore = checkWumpaCollisions(scene, wumpaScore);
-        // Check box collisions
         checkBoxCollisions(scene);
-        // Check gear collisions
         checkGearCollisions(scene);
-        // Check dropped life (crash-face) collisions
         checkDroppedLifeCollisions(scene);
 
-
-        // Check dropped gem collisions — returns an array of gem type strings
+        // Evaluate item collection rewards and update the corresponding interface counters
         const collectedGems = checkDroppedGemCollisions(scene);
         for (const gemType of collectedGems) {
-            // Reveal this gem colour in the bottom HUD tracker
             if (window.setHudGem) window.setHudGem(gemType);
-            // Remove from the droppable pool so it can’t spawn again
             removeGemType(gemType);
-            // Each gem is also worth 5 wumpa fruits
-            wumpaScore += 5;
+            wumpaScore += 5; // Reward bonus items for a gem grab
             if (window.setHudWumpa) window.setHudWumpa(wumpaScore);
         }
 
-        // --- SCORE & SPEED HUD ---
+        // recalculate overall performance stats for the UI display
         if (window.character.mesh) {
             const score = settings.computeScore(wumpaScore, window.brokenBoxes || 0);
             if (window.setHudScore) window.setHudScore(score);
-            // TODO: Adjust if (window.setHudSpeed) window.setHudSpeed(settings.currentSpeed);
         }
 
-        // Update hitbox debug visualisation
+        // Draw debug shapes around physical limits if enabled
         updateHitboxHelpers(scene);
 
-        // Keep camera glued to the character
+        // Anchor the camera rig coordinates relative to the moving character
         if (window.character.mesh) {
             camera.position.x = window.character.mesh.position.x - 11;
             camera.position.y = window.character.mesh.position.y + 14;
@@ -309,6 +261,7 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+// Adjust camera proportions and viewport stretching whenever the window changes size
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
