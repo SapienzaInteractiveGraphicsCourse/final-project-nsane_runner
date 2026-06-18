@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSANE-RUNNER — Crash Bandicoot Endless Runner</title>
+    <meta name="description"
+        content="An endless runner game inspired by Crash Bandicoot. Choose your character and difficulty and run!">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Outfit:wght@400;600;700;900&display=swap"
+        rel="stylesheet">
+  <script type="module" crossorigin src="/final-project-nsane_runner/assets/index-DpGrgEQe.js"></script>
+  <link rel="stylesheet" crossorigin href="/final-project-nsane_runner/assets/index-J1akBU-4.css">
+</head>
+
+<body>
+
+    <div id="splash-screen">
+        <div class="splash-glow-ring"></div>
+
+        <div class="menu-wrapper">
+
+            <header class="menu-header">
+                <p class="splash-subtitle">Bandicoot Edition</p>
+                <h1 class="splash-title">NSANE<br>RUNNER</h1>
+                <div class="splash-divider"></div>
+            </header>
+
+            <div class="mesh-placeholder" id="character-mesh-container">
+                [ 3D Character Mesh Viewport ]
+            </div>
+
+            <section class="menu-section" id="section-character">
+                <div class="menu-cards" id="character-cards">
+                    <button class="menu-card" data-group="character" data-value="crash" id="card-crash">
+                        <div class="card-icon-wrap crash-icon">
+                            <span class="card-emoji">🦊</span>
+                        </div>
+                        <span class="card-name">Crash Bandicoot</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="character" data-value="cortex" id="card-cortex">
+                        <div class="card-icon-wrap cortex-icon">
+                            <span class="card-emoji">🧪</span>
+                        </div>
+                        <span class="card-name">Dr. Neo Cortex</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
+            <section class="menu-section" id="section-map">
+                <div class="menu-cards menu-cards--triple" id="map-cards">
+                    <button class="menu-card" data-group="map" data-value="map1" id="card-map1">
+                        <div class="card-icon-wrap beach-icon">
+                            <span class="card-emoji">🏜️</span>
+                        </div>
+                        <span class="card-name">Desert Canyon</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="map" data-value="map2" id="card-map2">
+                        <div class="card-icon-wrap power-icon">
+                            <span class="card-emoji">🌋</span>
+                        </div>
+                        <span class="card-name">Red Wasteland</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card" data-group="map" data-value="map3" id="card-map3">
+                        <div class="card-icon-wrap temple-icon">
+                            <span class="card-emoji">🏰</span>
+                        </div>
+                        <span class="card-name">Stone Fortress</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
+            <section class="menu-section" id="section-difficulty">
+                <div class="menu-cards menu-cards--triple" id="difficulty-cards">
+                    <button class="menu-card card--easy" data-group="difficulty" data-value="easy" id="card-easy">
+                        <span class="card-name">Easy</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card card--medium" data-group="difficulty" data-value="medium" id="card-medium">
+                        <span class="card-name">Medium</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                    <button class="menu-card card--hard" data-group="difficulty" data-value="nsane" id="card-hard">
+                        <span class="card-name">N. Sane!</span>
+                        <div class="card-check">✓</div>
+                    </button>
+                </div>
+            </section>
+
+            <button class="commands-btn" id="btn-commands">
+                📖 How to Play
+            </button>
+
+            <p class="menu-error hidden" id="menu-error">
+                ⚠️ Please complete your selections before playing!
+            </p>
+
+            <button class="play-btn" id="play-btn">
+                <span class="play-btn-text">Play Game</span>
+                <span class="play-btn-icon">▶</span>
+            </button>
+
+        </div>
+    </div>
+
+    <!-- ═══════ HOW TO PLAY MODAL ═══════ -->
+    <div id="commands-overlay" class="hidden">
+        <div class="commands-modal">
+            <button class="commands-close" id="commands-close-btn">&times;</button>
+
+            <h2 class="commands-title">HOW TO PLAY</h2>
+            <p class="commands-subtitle">Master the controls to survive!</p>
+
+            <div class="commands-grid">
+                <!-- Jump -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>W</kbd><kbd>Space</kbd><kbd>↑</kbd>
+                    </div>
+                    <span class="command-action">Jump</span>
+                </div>
+
+                <!-- Move Left -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>A</kbd><kbd>←</kbd>
+                    </div>
+                    <span class="command-action">Move Left</span>
+                </div>
+
+                <!-- Move Right -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>D</kbd><kbd>→</kbd>
+                    </div>
+                    <span class="command-action">Move Right</span>
+                </div>
+
+                <!-- Attack -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>🖱 Left Click</kbd>
+                    </div>
+                    <span class="command-action">Attack</span>
+                </div>
+
+                <!-- Pause -->
+                <div class="command-row">
+                    <div class="command-keys">
+                        <kbd>Esc</kbd>
+                    </div>
+                    <span class="command-action">Pause Game</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // ---- MENU SELECTION LOGIC ----
+        (function () {
+            const selections = { character: null, map: null, difficulty: null };
+
+            // Handle card clicks
+            document.querySelectorAll('.menu-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const group = card.dataset.group;
+                    const value = card.dataset.value;
+
+                    // Deselect siblings in the same group
+                    document.querySelectorAll(`.menu-card[data-group="${group}"]`).forEach(c => {
+                        c.classList.remove('selected');
+                    });
+
+                    // Select this card
+                    card.classList.add('selected');
+                    selections[group] = value;
+
+                    // Hide error message if all selections are made
+                    if (selections.character && selections.map && selections.difficulty) {
+                        document.getElementById('menu-error').classList.add('hidden');
+                    }
+                });
+            });
+
+            // Play button handler
+            document.getElementById('play-btn').addEventListener('click', () => {
+                if (!selections.character || !selections.map || !selections.difficulty) {
+                    const errEl = document.getElementById('menu-error');
+                    errEl.classList.remove('hidden');
+                    // Shake animation
+                    errEl.classList.remove('shake');
+                    void errEl.offsetWidth; // Trigger reflow to restart animation
+                    errEl.classList.add('shake');
+                    return;
+                }
+
+                // Save selections to localStorage
+                localStorage.setItem('nsane_character', selections.character);
+                localStorage.setItem('nsane_map', selections.map);
+                localStorage.setItem('nsane_difficulty', selections.difficulty);
+
+                // Dispatch a custom event so main.js can pick it up
+                window.dispatchEvent(new CustomEvent('nsane-play'));
+
+                // Splash screen will be hidden by main.js after assets finish loading
+            });
+
+            // Commands button handler
+            document.getElementById('btn-commands').addEventListener('click', () => {
+                const modal = document.getElementById('commands-overlay');
+                if (modal) modal.classList.remove('hidden');
+            });
+
+            // Close commands modal
+            document.getElementById('commands-close-btn')?.addEventListener('click', () => {
+                document.getElementById('commands-overlay')?.classList.add('hidden');
+            });
+
+            // Close on backdrop click
+            document.getElementById('commands-overlay')?.addEventListener('click', (e) => {
+                if (e.target.id === 'commands-overlay') {
+                    e.target.classList.add('hidden');
+                }
+            });
+        })();
+    </script>
+
+
+
+</body>
+
+</html>
