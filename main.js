@@ -131,13 +131,13 @@ function loadAssets() {
     return Promise.all([
         selectedCharacter === 'crash' ? character.load(loader) : character.load(fbxLoader),
         AkuAku.load(loader),
-        loadGLTF('/wumpa/scene.gltf'),
-        loadGLTF('/gem/gems.glb'),
-        loadGLTF('/newlife/newlife.glb'),
+        loadGLTF('./wumpa/scene.gltf'),
+        loadGLTF('./gem/gems.glb'),
+        loadGLTF('./newlife/newlife.glb'),
         loadGLTF(boundaryAssets.object1.path),
         loadGLTF(boundaryAssets.object2.path),
         loadGLTF(boundaryAssets.object3.path),
-        loadGLTF("/gear/gear.glb")
+        loadGLTF("./gear/gear.glb")
     ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, object1Gltf, object2Gltf, object3Gltf, gearGltf]) => ({
         wumpaGltf,
         gemGlb,

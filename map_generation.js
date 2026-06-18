@@ -6,9 +6,9 @@ import { settings } from './settings.js';
 // --- MAP TEXTURE CONFIGURATION ---
 // Each map key maps to a folder under /maps/ with a road and side texture.
 const MAP_TEXTURES = {
-    map1: { road: '/maps/map 1/cactus_top.png', side: '/maps/map 1/cotton_tan.png' },
-    map2: { road: '/maps/map 2/cactus_side.png', side: '/maps/map 2/cotton_red.png' },
-    map3: { road: '/maps/map 3/greystone.png', side: '/maps/map 3/redsand.png' },
+    map1: { road: './maps/map 1/cactus_top.png', side: './maps/map 1/cotton_tan.png' },
+    map2: { road: './maps/map 2/cactus_side.png', side: './maps/map 2/cotton_red.png' },
+    map3: { road: './maps/map 3/greystone.png', side: './maps/map 3/redsand.png' },
 };
 import { registerCollisionObject, unregisterCollisionObject } from './check_collisions.js';
 

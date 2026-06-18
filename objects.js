@@ -4,13 +4,13 @@ import { wumpa_animation, nitro_animation, dropped_item_animation, gear_animatio
 
 // Shared texture & material — loaded once, reused across all StandardBox instances.
 const _textureLoader = new THREE.TextureLoader();
-const _texture = _textureLoader.load('/textures/blocks/standard.jpg');
-const _textureNitro = _textureLoader.load('/textures/blocks/nitro.jpg');
-const _textureNitroUpper = _textureLoader.load('/textures/blocks/nitro_upper.jpg');
-const _textureBurubuga = _textureLoader.load('/textures/blocks/burubuga.jpg');
-const _textureNewLife = _textureLoader.load('/textures/blocks/newlife.png');
-const _textureCrashFace = _textureLoader.load('/textures/crashFace.png');
-const _textureQuestionBox = _textureLoader.load('/textures/blocks/question_block.png');
+const _texture = _textureLoader.load('./textures/blocks/standard.jpg');
+const _textureNitro = _textureLoader.load('./textures/blocks/nitro.jpg');
+const _textureNitroUpper = _textureLoader.load('./textures/blocks/nitro_upper.jpg');
+const _textureBurubuga = _textureLoader.load('./textures/blocks/burubuga.jpg');
+const _textureNewLife = _textureLoader.load('./textures/blocks/newlife.png');
+const _textureCrashFace = _textureLoader.load('./textures/crashFace.png');
+const _textureQuestionBox = _textureLoader.load('./textures/blocks/question_block.png');
 
 const _material = new THREE.MeshStandardMaterial({ map: _texture });
 const _materialNitro = new THREE.MeshStandardMaterial({ map: _textureNitro });

@@ -64,7 +64,7 @@ export class Crash {
      */
     load(loader) {
         return new Promise((resolve, reject) => {
-            loader.load('/crash/scene.gltf', (gltf) => {
+            loader.load('./crash/scene.gltf', (gltf) => {
                 this.mesh = gltf.scene;
                 resolve(this.mesh);
             }, undefined, reject);
@@ -93,7 +93,7 @@ export class AkuAku {
      */
     static load(loader) {
         return new Promise((resolve, reject) => {
-            loader.load('/akuaku/scene.gltf', (gltf) => {
+            loader.load('./akuaku/scene.gltf', (gltf) => {
                 _akuakuModelCache = gltf.scene;
                 resolve(_akuakuModelCache);
             }, undefined, reject);
@@ -156,7 +156,7 @@ export class Cortex {
      */
     load(loader) {
         return new Promise((resolve, reject) => {
-            loader.load('/cortex/cortex.fbx', (fbx) => {
+            loader.load('./cortex/cortex.fbx', (fbx) => {
                 this.mesh = fbx;
                 this.mesh.scale.set(0.004, 0.004, 0.004);
                 this.mesh.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 2);
