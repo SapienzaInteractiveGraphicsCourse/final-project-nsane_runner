@@ -5,10 +5,11 @@ import { settings } from './settings.js';
 
 // --- MAP TEXTURE CONFIGURATION ---
 // Each map key maps to a folder under /maps/ with a road and side texture.
+const BASE = import.meta.env.BASE_URL;
 const MAP_TEXTURES = {
-    map1: { road: './maps/map 1/cactus_top.png', side: './maps/map 1/cotton_tan.png' },
-    map2: { road: './maps/map 2/cactus_side.png', side: './maps/map 2/cotton_red.png' },
-    map3: { road: './maps/map 3/greystone.png', side: './maps/map 3/redsand.png' },
+    map1: { road: `${BASE}maps/map 1/cactus_top.png`, side: `${BASE}maps/map 1/cotton_tan.png` },
+    map2: { road: `${BASE}maps/map 2/cactus_side.png`, side: `${BASE}maps/map 2/cotton_red.png` },
+    map3: { road: `${BASE}maps/map 3/greystone.png`, side: `${BASE}maps/map 3/redsand.png` },
 };
 import { registerCollisionObject, unregisterCollisionObject } from './check_collisions.js';
 
@@ -152,20 +153,11 @@ function initMatrix(rows, totalCols, sideColsLeft, lanes) {
                     // Gestiamo lo spawn solo nelle righe designate (Inizio, Metà, Fine)
                     if (i === rowStart || i === rowMid || i === rowEnd) {
 
-                        // La strada è larga 15 (meshSize). Dividiamola in 3 corsie da 5.
+                        // Strada larga 15, 3 corsie da 5
                         const laneOffset = meshSize / 3;
                         const subLanes = [-laneOffset, 0, laneOffset]; // [-5, 0, 5]
 
                         let roadObjects = []; // Array per gli oggetti di questa riga
-
-                        // 1. DECIDI QUANTI OGGETTI SPAWNARE (Da 0 a 3)
-                        // Puoi regolare queste percentuali per bilanciare la difficoltà
-                        // const randCount = Math.random();
-                        // let numObjects = 0;
-
-                        // if (randCount < 0.15) numObjects = 0; // 15% di chance: Riga vuota
-                        // else if (randCount < 0.60) numObjects = 1; // 45% di chance: 1 Oggetto
-                        // else if (randCount < 0.90) numObjects = 3; // 30% di chance: 2 Oggetti
 
                         if (i === gearPosition) {
                             roadObjects.push({ type: "gear", offsetZ: -laneOffset });
@@ -332,45 +324,37 @@ function generateWumpaStreak(mat, rows, centerJ, meshSize) {
 
 
 export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition, totalCols, sideColsLeft) {
-    // Nel primissimo tile non spawnare oggetti per dare al giocatore
-    // un po' di spazio per iniziare a correre.
+    // In the very first tile don't spawn objects to give the player
+    // some space to start running.
     if (isFirstTile) return;
 
     const rows = mat.length;
     const cols = mat[0].length;
 
-    // Calcoliamo le lanes dinamicamente
+    // Calculate lanes dynamically
     const lanes = totalCols - sideColsLeft * 2;
 
-    // Altezza per le casse fluttuanti ("_up")
+    // Height of _up objecs
     const FLOAT_HEIGHT = 7.75;
 
     for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
             const cell = mat[i][j];
 
-            if (cell === 0) continue; // Salta le celle vuote
-
-            // --- Determina se questa colonna fa parte della carreggiata ---
+            if (cell === 0) continue;
             const isRoad = (j >= sideColsLeft && j < sideColsLeft + lanes);
 
             if (isRoad) {
                 // --- ROAD OBJECTS ---
-                // Con la nuova logica, 'cell' ora è un Array di oggetti. 
-                // Assicuriamoci che lo sia prima di procedere.
                 if (!Array.isArray(cell)) continue;
 
-                // Cicliamo su tutti gli oggetti previsti in questa riga (es. muro di Nitro)
                 for (let k = 0; k < cell.length; k++) {
                     const item = cell[k];
 
                     const cellType = item.type;
                     const offsetZ = item.offsetZ || 0;
-
-                    // Essendo una singola lane logica, passiamo sempre 1 (centro) ai costruttori
                     const laneCol = 1;
 
-                    // Estrapoliamo il suffisso "_up"
                     const isUp = cellType.endsWith('_up');
                     const baseType = isUp ? cellType.replace('_up', '') : cellType;
 
@@ -397,11 +381,9 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                             break;
                         case 'gear':
                             const xPos = (i + cumulativePosition) * meshSize;
-                            // Farmost left point is roughly -10 or -12. 
-                            // Since offsetZ is added below, we subtract it here to ensure it lands exactly on -12.
+                            // set spawn point of gear
                             const startZ = -5 - offsetZ;
                             obj = new Gear(xPos, startZ);
-                            // We attach a property so we know to animate it after it's fully placed
                             obj.userData.isGear = true;
                             break;
                         default:
@@ -410,20 +392,20 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
                     }
 
                     if (obj) {
-                        // 1. Spostiamo l'oggetto nella sotto-corsia corretta
+                        // set object position
                         obj.position.z += offsetZ;
 
-                        // [FONDAMENTALE] Aggiorniamo l'hitbox sull'asse Z
+                        // update object hitbox
                         if (obj.userData.hitbox) {
                             obj.userData.hitbox.min.z += offsetZ;
                             obj.userData.hitbox.max.z += offsetZ;
                         }
 
-                        // 2. Se è "_up", lo alziamo da terra
+                        // if the object is up, move it
                         if (isUp) {
                             obj.position.y += FLOAT_HEIGHT;
 
-                            // Aggiorniamo l'hitbox sull'asse Y
+                            // update object hitbox
                             if (obj.userData.hitbox) {
                                 // Extend the hitbox downwards to make it easier to hit
                                 // but keep it above Crash's running height (max.y = 1.5)
@@ -444,20 +426,11 @@ export function initObjects(tile, isFirstTile, mat, meshSize, cumulativePosition
 
             } else {
                 // --- SIDE DECORATION OBJECTS ---
-
-                // Coordinata X assoluta nel mondo
                 let xPos = (i + cumulativePosition) * meshSize;
-
-                // Coordinata Z assoluta nel mondo
                 let zPos = (j - Math.floor(totalCols / 2)) * meshSize;
-
-                // I decori laterali nella tua matrice sono oggetti del tipo { offsetZ: ... }
-                // Verifichiamo che sia un oggetto e NON un array (per sicurezza)
                 if (typeof cell === 'object' && !Array.isArray(cell) && cell !== null) {
                     if (cell.offsetX) xPos += cell.offsetX;
                     if (cell.offsetZ) zPos += cell.offsetZ;
-
-                    // Aggiungiamo un leggero jitter per renderli più naturali
                     xPos += (Math.random() - 0.5) * 3;
                     zPos += (Math.random() - 0.5) * 3;
                 }

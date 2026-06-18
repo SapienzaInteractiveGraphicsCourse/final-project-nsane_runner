@@ -2,10 +2,6 @@ import { CrashAnimations, CortexAnimations } from './character_animations.js';
 import { pauseGame, isPaused, isGameOver } from './game_management.js';
 
 
-// =============================================================================
-//  CRASH MANAGEMENT
-// =============================================================================
-
 /**
  * Manages input handling and movement logic for the Crash Bandicoot character.
  */
@@ -172,7 +168,9 @@ export class CrashManagement {
         })
     }
 }
-
+/**
+ * Manages input handling and movement logic for the Neo Cortex character.
+ */
 export class CortexManagement {
 
     constructor() {

@@ -40,21 +40,23 @@ const DIFFICULTY_PRESETS = {
     },
 };
 
+const BASE = import.meta.env.BASE_URL;
+
 export const MAP_BOUNDARY_ASSETS = {
     map1: {
-        object1: { path: './maps/map 1/cassa/scene.gltf', name: 'object1', scale: 0.03 },
-        object2: { path: './maps/map 1/rock_sphere.glb', name: 'object2', scale: 3 },
-        object3: { path: './maps/map 1/totem.glb', name: 'object3', scale: 4 },
+        object1: { path: `${BASE}maps/map 1/cassa/scene.gltf`, name: 'object1', scale: 0.03 },
+        object2: { path: `${BASE}maps/map 1/rock_sphere.glb`, name: 'object2', scale: 3 },
+        object3: { path: `${BASE}maps/map 1/totem.glb`, name: 'object3', scale: 4 },
     },
     map2: {
-        object1: { path: './maps/map 2/statua_atzeca.glb', name: 'object1', scale: 13 },
-        object2: { path: './maps/map 2/statua_imbruttita.glb', name: 'object2', scale: 12 },
-        object3: { path: './maps/map 2/tree.glb', name: 'object3', scale: 4 },
+        object1: { path: `${BASE}maps/map 2/statua_atzeca.glb`, name: 'object1', scale: 13 },
+        object2: { path: `${BASE}maps/map 2/statua_imbruttita.glb`, name: 'object2', scale: 12 },
+        object3: { path: `${BASE}maps/map 2/tree.glb`, name: 'object3', scale: 4 },
     },
     map3: {
-        object1: { path: './maps/map 3/navicella.glb', name: 'object1', scale: 5.5 },
-        object2: { path: './maps/map 3/distributore_futuristico.glb', name: 'object2', scale: 15 },
-        object3: { path: './maps/map 3/electric_candel.glb', name: 'object3', scale: 15 },
+        object1: { path: `${BASE}maps/map 3/navicella.glb`, name: 'object1', scale: 5.5 },
+        object2: { path: `${BASE}maps/map 3/distributore_futuristico.glb`, name: 'object2', scale: 15 },
+        object3: { path: `${BASE}maps/map 3/electric_candel.glb`, name: 'object3', scale: 15 },
     },
 };
 

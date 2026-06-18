@@ -1,5 +1,4 @@
 import TWEEN from 'three/examples/jsm/libs/tween.module.js';
-import * as THREE from 'three';
 import { settings } from './settings.js';
 import { removeTiles } from './map_generation.js';
 import { Sound } from './sounds.js';
@@ -9,10 +8,6 @@ const spinSound = new Sound('spinSound.wav');
 const punchSound = new Sound('punch.wav')
 
 
-// =============================================================================
-//  ABSTRACT BASE CLASS — shared by all character animation handlers
-// =============================================================================
-
 /**
  * Abstract base class that provides the locomotion methods shared by every
  * character: forward movement, jumping, lane-sliding, and speed query.
@@ -20,19 +15,13 @@ const punchSound = new Sound('punch.wav')
  */
 class CharacterAnimations {
 
-    // -------------------------------------------------------------------------
-    //  Must be overridden by each subclass
-    // -------------------------------------------------------------------------
-
+    // must be overwritten by each subclass
     /** @abstract */
     characterWalkAnimation(character) {
         throw new Error(`${this.constructor.name} must implement characterWalkAnimation()`);
     }
 
-    // -------------------------------------------------------------------------
-    //  Shared public API
-    // -------------------------------------------------------------------------
-
+    // shared public API
     getCharacterSpeed() {
         return settings.currentSpeed;
     }
@@ -143,27 +132,14 @@ class CharacterAnimations {
 }
 
 
-// =============================================================================
-//  CRASH ANIMATIONS
-// =============================================================================
 
-/**
- * Handles all procedural bone-driven animations for the Crash character,
- * including walking, jumping, sliding, and the spin attack.
- */
+// Crash animations
 export class CrashAnimations extends CharacterAnimations {
 
-    // =========================================================================
-    //  CANONICAL REST POSE — captured once from the model's original bone state
-    // =========================================================================
 
-    /**
-     * Captures the model's original bone rotations/positions as the canonical
-     * rest pose. Must be called exactly once, before any animation starts.
-     * Stores the result on `character._canonicalRestPose`.
-     */
+    // capture original bone rotations as rest pose
     _captureCanonicalRestPose(character) {
-        if (character._canonicalRestPose) return; // already captured
+        if (character._canonicalRestPose) return;
 
         const mesh = character.mesh;
         const get = (name) => mesh.getObjectByName(name);
@@ -201,10 +177,7 @@ export class CrashAnimations extends CharacterAnimations {
         };
     }
 
-    /**
-     * Resets every animated bone back to the canonical rest pose.
-     * Safe to call at any time — idempotent.
-     */
+    // reset to canonical rest pose
     _resetToCanonicalPose(character) {
         const rest = character._canonicalRestPose;
         if (!rest) return;
@@ -243,18 +216,12 @@ export class CrashAnimations extends CharacterAnimations {
         if (rootJoint) rootJoint.rotation.y = rest.rootY;
     }
 
-    // =========================================================================
-    //  PUBLIC API
-    // =========================================================================
-
-    /**
-     * Procedural walk cycle using two tweens (legs + arms).
-     */
+    // procedural walk cycle using two tweens (legs + arms)
     characterWalkAnimation(character) {
-        // --- Capture the canonical rest pose exactly once (first call only) ---
+        // Save the default starting pose on the very first run so we can always return to it
         this._captureCanonicalRestPose(character);
 
-        // --- Stop & clean up any previous walk tweens ---
+        // Stop and clear any walking animations that are already running
         if (character.walkTween) {
             character.walkTween.stop();
             character.walkTween = null;
@@ -264,55 +231,50 @@ export class CrashAnimations extends CharacterAnimations {
             character.armWalkTween = null;
         }
 
-        // --- Reset all bones to the canonical rest pose before starting ---
+        // Put all the bones back to their starting positions before we begin
         this._resetToCanonicalPose(character);
 
+        // Grab all the bone pieces for the left leg
         const leftLeg1 = character.mesh.getObjectByName("leg1_45");
         const leftLeg2 = character.mesh.getObjectByName("leg2_44");
-        const leftFoot = character.mesh.getObjectByName("foot_43");      // left foot
-        const leftToe = character.mesh.getObjectByName("toe_42");       // left toes
-        const rightLeg1 = character.mesh.getObjectByName("leg1001_49");   // right upper leg (hip)
-        const rightLeg2 = character.mesh.getObjectByName("leg2001_48");   // right lower leg (calf/knee)
-        const rightFoot = character.mesh.getObjectByName("foot001_47");   // right foot
-        const rightToe = character.mesh.getObjectByName("toe001_46");    // right toes
+        const leftFoot = character.mesh.getObjectByName("foot_43");
+        const leftToe = character.mesh.getObjectByName("toe_42");
 
-        // --- Upper body ---
-        const leftArm1 = character.mesh.getObjectByName("arm1_27");      // left upper arm (shoulder)
-        const leftArm2 = character.mesh.getObjectByName("arm2_26");      // left forearm (elbow)
-        const rightArm1 = character.mesh.getObjectByName("arm1001_40");   // right upper arm (shoulder)
-        const rightArm2 = character.mesh.getObjectByName("arm2001_39");   // right forearm (elbow)
+        // Grab all the bone pieces for the right leg
+        const rightLeg1 = character.mesh.getObjectByName("leg1001_49");
+        const rightLeg2 = character.mesh.getObjectByName("leg2001_48");
+        const rightFoot = character.mesh.getObjectByName("foot001_47");
+        const rightToe = character.mesh.getObjectByName("toe001_46");
 
-        // --- Torso / core ---
-        const body = character.mesh.getObjectByName("body_41");      // upper body / spine
+        // Grab the arm components for both sides
+        const leftArm1 = character.mesh.getObjectByName("arm1_27");
+        const leftArm2 = character.mesh.getObjectByName("arm2_26");
+        const rightArm1 = character.mesh.getObjectByName("arm1001_40");
+        const rightArm2 = character.mesh.getObjectByName("arm2001_39");
 
-        // =========================================================================
-        //  USE CANONICAL REST POSE (always the true original, never a mid-anim snapshot)
-        // =========================================================================
+        // Grab the main spine and the default pose reference
+        const body = character.mesh.getObjectByName("body_41");
         const rest = character._canonicalRestPose;
 
-        // =========================================================================
-        //  ANIMATION PARAMETERS
-        // =========================================================================
-        const cycleTime = 550;  // ms per full stride cycle — fast but readable
+        // Set up the timing and movement limits for a fast, snappy stride
+        const cycleTime = 550;
 
-        // --- Leg amplitudes (radians) ---
-        const hipSwing = 0.7;   // upper-leg forward/back swing
-        const kneeFlexMax = 0.75;  // max calf bend when knee is lifted
-        const kneeFlexMin = 0.1;   // slight residual bend on the planted leg
-        const footRock = 0.25;  // ankle push-off articulation
-        const toeFlick = 0.2;   // toe spring at push-off
+        // Define how far the legs swing, bend, and flex
+        const hipSwing = 0.7;
+        const kneeFlexMax = 0.75;
+        const kneeFlexMin = 0.1;
+        const footRock = 0.25;
+        const toeFlick = 0.2;
 
-        // --- Arm amplitudes (radians) ---
-        const shoulderSwing = 0.55;  // upper-arm forward/back drive
-        const elbowFlexMax = 0.8;   // acute elbow bend on the forward arm
-        const elbowFlexMin = 0.1;  // near-straight on the trailing arm
+        // Define how much the arms swing and elbows bend
+        const shoulderSwing = 0.55;
+        const elbowFlexMax = 0.8;
+        const elbowFlexMin = 0.1;
 
-        // --- Body dynamics ---
-        const bodyBounce = 0.15;  // subtle vertical bounce amplitude (Y translation)
+        // Set the amount of vertical bounce for the hips
+        const bodyBounce = 0.15;
 
-        // =========================================================================
-        //  TWEEN 1 — LOWER BODY (Legs + Body Bounce)
-        // =========================================================================
+        // Set up the animation loop for the lower body and hips
         const legCycle = { phase: 0 };
 
         const legTween = new TWEEN.Tween(legCycle)
@@ -321,15 +283,15 @@ export class CrashAnimations extends CharacterAnimations {
             .onUpdate(function () {
                 const p = legCycle.phase;
 
-                // Sine values: left leg leads, right leg is π out of phase
+                // Use sine waves to make the legs move back and forth opposite of each other
                 const sinL = Math.sin(p);
                 const sinR = Math.sin(p + Math.PI);
 
-                // --- UPPER LEGS (hip drive) ---
+                // Swing the hips forward and backward
                 if (leftLeg1) leftLeg1.rotation.x = rest.lL1.x + sinL * hipSwing;
                 if (rightLeg1) rightLeg1.rotation.x = rest.rL1.x + sinR * hipSwing;
 
-                // --- LOWER LEGS (knee flex) ---
+                // Figure out how much each knee should bend during its stride phase
                 const leftKnee = Math.max(0, sinL);
                 const rightKnee = Math.max(0, sinR);
                 const leftKneeFlex = kneeFlexMin + (kneeFlexMax - kneeFlexMin) * leftKnee;
@@ -338,17 +300,17 @@ export class CrashAnimations extends CharacterAnimations {
                 if (leftLeg2) leftLeg2.rotation.x = rest.lL2.x - leftKneeFlex;
                 if (rightLeg2) rightLeg2.rotation.x = rest.rL2.x - rightKneeFlex;
 
-                // --- FEET (ankle articulation) ---
+                // Rock the feet at the ankles to mimic stepping and lifting
                 if (leftFoot) leftFoot.rotation.x = rest.lF.x - sinL * footRock;
                 if (rightFoot) rightFoot.rotation.x = rest.rF.x - sinR * footRock;
 
-                // --- TOES (flick at push-off) ---
+                // Make the toes bend upwards slightly right as the foot pushes off the ground
                 const leftToeBend = Math.max(0, (-sinL - 0.3) / 0.7) * toeFlick;
                 const rightToeBend = Math.max(0, (-sinR - 0.3) / 0.7) * toeFlick;
                 if (leftToe) leftToe.rotation.x = rest.lT.x + leftToeBend;
                 if (rightToe) rightToe.rotation.x = rest.rT.x + rightToeBend;
 
-                // --- BODY BOUNCE (double-frequency — bounces twice per stride) ---
+                // Make the body bounce up and down twice per full stride cycle
                 const bounce = Math.sin(p) * Math.sin(p) * bodyBounce;
                 if (body) {
                     body.position.y = rest.bodyPosY + bounce;
@@ -359,9 +321,7 @@ export class CrashAnimations extends CharacterAnimations {
         registerTween(legTween);
         legTween.start();
 
-        // =========================================================================
-        //  TWEEN 2 — UPPER BODY (Arms)
-        // =========================================================================
+        // Set up the animation loop for the arms
         const armCycle = { phase: 0 };
 
         const armTween = new TWEEN.Tween(armCycle)
@@ -370,14 +330,15 @@ export class CrashAnimations extends CharacterAnimations {
             .onUpdate(function () {
                 const p = armCycle.phase;
 
+                // Sync the arms so they move opposite to the legs
                 const sinLA = Math.sin(p + Math.PI);
                 const sinRA = Math.sin(p);
 
-                // --- UPPER ARMS (shoulder drive on Y-axis per model rigging) ---
+                // Swing the shoulders along the axis required by this specific model's rig
                 if (leftArm1) leftArm1.rotation.y = rest.lA1.y + sinLA * shoulderSwing;
                 if (rightArm1) rightArm1.rotation.y = rest.rA1.y + sinRA * shoulderSwing;
 
-                // --- FOREARMS (elbow flex) ---
+                // Bend the elbows more when swinging forward, and straighten them going backward
                 const leftElbow = Math.max(0, sinLA);
                 const rightElbow = Math.max(0, sinRA);
                 const leftElbowFlex = elbowFlexMin + (elbowFlexMax - elbowFlexMin) * leftElbow;
@@ -391,13 +352,10 @@ export class CrashAnimations extends CharacterAnimations {
         registerTween(armTween);
         armTween.start();
 
-        // =========================================================================
-        //  STORE REFERENCES (for pause / spin-attack interruption)
-        // =========================================================================
+        // Keep track of these animation loops so we can pause them or cut away to an attack animation
         character.walkTween = legTween;
         character.armWalkTween = armTween;
     }
-
     /**
      * Smooth lateral slide animation when switching lanes.
      */
@@ -474,7 +432,7 @@ export class CrashAnimations extends CharacterAnimations {
 
         const self = this;
 
-        // --- Bone references ---
+        // Bone references
         const rootJoint = character.mesh.getObjectByName("GLTF_created_0_rootJoint");
         const leftLeg = character.mesh.getObjectByName("leg1_45");
         const rightLeg = character.mesh.getObjectByName("leg1001_49");
@@ -490,7 +448,7 @@ export class CrashAnimations extends CharacterAnimations {
         const rightArm2 = character.mesh.getObjectByName("arm2001_39");
         const body = character.mesh.getObjectByName("body_41");
 
-        // --- Save the current running pose so we can restore it afterwards ---
+        // Save the current running pose so we can restore it afterwards
         const savedPose = {
             rootY: rootJoint ? rootJoint.rotation.y : 0,
             leftLegX: leftLeg ? leftLeg.rotation.x : 0,
@@ -508,13 +466,13 @@ export class CrashAnimations extends CharacterAnimations {
             bodyPosY: body ? body.position.y : 0,
         };
 
-        // --- Pause BOTH walk tweens (legs + arms) while spinning ---
+        // Pause BOTH walk tweens (legs + arms) while spinning
         if (character.walkTween) character.walkTween.stop();
         if (character.armWalkTween) character.armWalkTween.stop();
 
-        // =========================================================================
+
         // PHASE 1 — ANTICIPATION  (bend knees + snap arms into T-pose)
-        // =========================================================================
+
         const anticipationDuration = 50; // ms — snappy wind-up
         const kneeBend = 0.35;      // radians — slight knee bend
         const tPoseArmAngle = 1.2;       // radians — arms straight out to sides
@@ -551,9 +509,9 @@ export class CrashAnimations extends CharacterAnimations {
                 }
             });
 
-        // =========================================================================
+
         // PHASE 2 — SPIN  (3 full rotations around Y-axis, T-pose locked in)
-        // =========================================================================
+
         const spinCount = 3;
         const spinDuration = 400; // ms total for all 3 spins — fast & snappy
         const totalRadians = Math.PI * 2 * spinCount;
@@ -573,9 +531,9 @@ export class CrashAnimations extends CharacterAnimations {
                 if (rootJoint) rootJoint.rotation.y = spinStartY + spin.angle;
             });
 
-        // =========================================================================
+
         // PHASE 3 — RECOVERY  (return to neutral then restart run animation)
-        // =========================================================================
+
         const recoveryDuration = 50; // ms
         const recovery = { t: 0 };
         const recoveryTween = new TWEEN.Tween(recovery)
@@ -603,9 +561,9 @@ export class CrashAnimations extends CharacterAnimations {
                 self.characterWalkAnimation(character);
             });
 
-        // =========================================================================
+
         // CHAIN:  Anticipation → Spin → Recovery
-        // =========================================================================
+
         anticipationTween.chain(spinTween);
         spinTween.chain(recoveryTween);
 
@@ -617,9 +575,7 @@ export class CrashAnimations extends CharacterAnimations {
 }
 
 
-// =============================================================================
-//  CORTEX ANIMATIONS
-// =============================================================================
+// Cortex animations
 
 /**
  * Handles all procedural bone-driven animations for the Cortex character.
@@ -628,9 +584,9 @@ export class CrashAnimations extends CharacterAnimations {
  */
 export class CortexAnimations extends CharacterAnimations {
 
-    // =========================================================================
+
     //  CANONICAL REST POSE — captured once from the Cortex model's T-pose
-    // =========================================================================
+
 
     /**
      * Captures the model's original bone rotations/positions as the canonical
@@ -737,9 +693,6 @@ export class CortexAnimations extends CharacterAnimations {
         if (rightShoulder) rightShoulder.rotation.copy(rest.rS);
     }
 
-    // =========================================================================
-    //  PUBLIC API
-    // =========================================================================
 
     /**
      * Procedural walk cycle for Cortex using Mixamo bone rig.
@@ -768,7 +721,7 @@ export class CortexAnimations extends CharacterAnimations {
             this._resetToCanonicalPose(character);
         };
 
-        // --- Bone references ---
+        // Bone references 
         const hips = character.mesh.getObjectByName('mixamorigHips');
         const spine = character.mesh.getObjectByName('mixamorigSpine');
         const leftUpLeg = character.mesh.getObjectByName('mixamorigLeftUpLeg');
@@ -786,14 +739,11 @@ export class CortexAnimations extends CharacterAnimations {
         const leftShoulder = character.mesh.getObjectByName('mixamorigLeftShoulder');
         const rightShoulder = character.mesh.getObjectByName('mixamorigRightShoulder');
 
-        // =====================================================================
         //  USE CANONICAL REST POSE (T-pose values — the true original)
-        // =====================================================================
         const rest = character._canonicalRestPose;
 
-        // =====================================================================
         //  ANIMATION PARAMETERS
-        // =====================================================================
+
         const cycleTime = 550;  // ms per full stride cycle
 
         // --- Arm idle offset from T-pose (radians) ---
@@ -817,9 +767,9 @@ export class CortexAnimations extends CharacterAnimations {
         const bodyBounce = 0.12;  // subtle vertical bounce amplitude (Y translation)
         const spineRock = 0.04;  // subtle spinal twist during stride
 
-        // =====================================================================
+
         //  TWEEN 1 — LOWER BODY (Legs + Hips Bounce)
-        // =====================================================================
+
         const legCycle = { phase: 0 };
 
         const legTween = new TWEEN.Tween(legCycle)
@@ -828,15 +778,16 @@ export class CortexAnimations extends CharacterAnimations {
             .onUpdate(function () {
                 const p = legCycle.phase;
 
-                // Sine values: left leg leads, right leg is π out of phase
                 const sinL = Math.sin(p);
                 const sinR = Math.sin(p + Math.PI);
 
-                // --- UPPER LEGS (hip drive — swing on X axis for Mixamo) ---
+                // UPPER LEGS
+
                 if (leftUpLeg) leftUpLeg.rotation.x = rest.lUL.x - sinL * hipSwing;
                 if (rightUpLeg) rightUpLeg.rotation.x = rest.rUL.x - sinR * hipSwing;
 
-                // --- LOWER LEGS (knee flex — only bends when leg is forward/lifting) ---
+                // LOWER LEGS
+
                 const leftKnee = Math.max(0, sinL);
                 const rightKnee = Math.max(0, sinR);
                 const leftKneeFlex = kneeFlexMin + (kneeFlexMax - kneeFlexMin) * leftKnee;
@@ -845,23 +796,27 @@ export class CortexAnimations extends CharacterAnimations {
                 if (leftLeg) leftLeg.rotation.x = rest.lL.x + leftKneeFlex;
                 if (rightLeg) rightLeg.rotation.x = rest.rL.x + rightKneeFlex;
 
-                // --- FEET (ankle articulation) ---
+                // FEET (ankle articulation)
+
                 if (leftFoot) leftFoot.rotation.x = rest.lF.x + sinL * footRock;
                 if (rightFoot) rightFoot.rotation.x = rest.rF.x + sinR * footRock;
 
-                // --- TOES (flick at push-off) ---
+                // TOES (flick at push-off)
+
                 const leftToeBend = Math.max(0, (-sinL - 0.3) / 0.7) * toeFlick;
                 const rightToeBend = Math.max(0, (-sinR - 0.3) / 0.7) * toeFlick;
                 if (leftToe) leftToe.rotation.x = rest.lT.x - leftToeBend;
                 if (rightToe) rightToe.rotation.x = rest.rT.x - rightToeBend;
 
-                // --- HIPS BOUNCE (double-frequency — bounces twice per stride) ---
+                // HIPS BOUNCE (double-frequency — bounces twice per stride)
+
                 if (hips) {
                     const bounce = Math.sin(p) * Math.sin(p) * bodyBounce;
                     hips.position.y = rest.hipsY + bounce;
                 }
 
-                // --- SPINE TWIST (subtle counter-rotation for realism) ---
+                // SPINE TWIST (subtle counter-rotation for realism)
+
                 if (spine) {
                     spine.rotation.y = rest.spine.y + sinL * spineRock;
                 }
@@ -871,11 +826,10 @@ export class CortexAnimations extends CharacterAnimations {
         registerTween(legTween);
         legTween.start();
 
-        // =====================================================================
         //  TWEEN 2 — UPPER BODY (Arms — brought down from T-pose + swing)
-        // =====================================================================
+
         const armCycle = { phase: 0 };
-        const armCycleTime = 700; // Arm swing period (changed from 550)
+        const armCycleTime = 700;
 
         const armTween = new TWEEN.Tween(armCycle)
             .to({ phase: Math.PI * 2 }, armCycleTime)
@@ -896,16 +850,14 @@ export class CortexAnimations extends CharacterAnimations {
                 }
 
                 // --- UPPER ARMS (position down from T-pose + forward/back swing) ---
-                // Z-rotation lowers the arms down from horizontal.
-                // Y-rotation rotates the arms outward (left goes left, right goes right)
-                // so they point to the sides instead of forward.
+
                 if (leftArm) {
-                    leftArm.rotation.z = rest.lA.z - armDownAngle; // subtracted to point to the ground
+                    leftArm.rotation.z = rest.lA.z - armDownAngle;
                     leftArm.rotation.y = rest.lA.y - Math.PI / 2;
                     leftArm.rotation.x = rest.lA.x + sinLA * shoulderSwing;
                 }
                 if (rightArm) {
-                    rightArm.rotation.z = rest.rA.z + armDownAngle; // added to point to the ground
+                    rightArm.rotation.z = rest.rA.z + armDownAngle;
                     rightArm.rotation.y = rest.rA.y + Math.PI / 2;
                     rightArm.rotation.x = rest.rA.x + sinRA * shoulderSwing;
                 }
@@ -924,9 +876,6 @@ export class CortexAnimations extends CharacterAnimations {
         registerTween(armTween);
         armTween.start();
 
-        // =====================================================================
-        //  STORE REFERENCES (for pause / attack interruption)
-        // =====================================================================
         character.walkTween = legTween;
         character.armWalkTween = armTween;
     }
@@ -945,14 +894,8 @@ export class CortexAnimations extends CharacterAnimations {
         this._punchCharacterAnimation(character);
     }
 
-    /**
- * Rewritten punch animation — fixes five bugs in the original:
- *  1. Walk tweens now nulled (not just stopped) so cleanup is safe
- *  2. Left arm included in recovery (was completely abandoned before)
- *  3. Recovery targets the walk cycle's phase=0 neutral pose, not a stale mid-stride snapshot
- *  4. rightArm.rotation.y is locked throughout (was never set, left at a random value)
- *  5. No T-pose flash — recovery lands exactly where the walk tween expects to begin
- */
+
+
     _punchCharacterAnimation(character) {
         if (!character.mesh) return;
 
@@ -970,29 +913,24 @@ export class CortexAnimations extends CharacterAnimations {
         const leftForeArm = character.mesh.getObjectByName('mixamorigLeftForeArm');
         const spine = character.mesh.getObjectByName('mixamorigSpine');
 
-        // FIX 1: Stop AND null — characterWalkAnimation's cleanup check is then safe
         if (character.walkTween) { character.walkTween.stop(); character.walkTween = null; }
         if (character.armWalkTween) { character.armWalkTween.stop(); character.armWalkTween = null; }
 
-        // Snapshot of the frozen mid-walk state — wind-up starts from here
         const from = {
             rAx: rightArm ? rightArm.rotation.x : rest.rA.x,
             rAy: rightArm ? rightArm.rotation.y : rest.rA.y,
             rAz: rightArm ? rightArm.rotation.z : rest.rA.z,
             rFAx: rightForeArm ? rightForeArm.rotation.x : rest.rFA.x,
-            lAx: leftArm ? leftArm.rotation.x : rest.lA.x,   // FIX 2: capture left arm too
+            lAx: leftArm ? leftArm.rotation.x : rest.lA.x,
             lAy: leftArm ? leftArm.rotation.y : rest.lA.y,
             lAz: leftArm ? leftArm.rotation.z : rest.lA.z,
             lFAx: leftForeArm ? leftForeArm.rotation.x : rest.lFA.x,
             spY: spine ? spine.rotation.y : rest.spine.y,
         };
 
-        // FIX 3 & 5: Recovery target = walk cycle's phase=0 neutral arm pose.
-        // characterWalkAnimation sets exactly these values on its very first tween
-        // update frame, so ending here gives a seamless, T-pose-free handoff.
         const neutral = {
             rAx: rest.rA.x,
-            rAy: rest.rA.y + Math.PI / 2,   // FIX 4: Y must be set explicitly
+            rAy: rest.rA.y + Math.PI / 2,
             rAz: rest.rA.z + armDownAngle,
             rFAx: rest.rFA.x + elbowFlexMin,
             lAx: rest.lA.x,
@@ -1002,9 +940,8 @@ export class CortexAnimations extends CharacterAnimations {
             spY: rest.spine.y,
         };
 
-        // =========================================================================
-        // PHASE 1 — WIND UP  (pull arm back, flex elbow tight, twist spine right)
-        // =========================================================================
+        // PHASE 1 — WIND UP (pull arm back, flex elbow tight, twist spine right)
+
         const windUp = { t: 0 };
         const windUpTween = new TWEEN.Tween(windUp)
             .to({ t: 1 }, 100)
@@ -1013,7 +950,7 @@ export class CortexAnimations extends CharacterAnimations {
                 const t = windUp.t;
                 if (rightArm) {
                     rightArm.rotation.x = from.rAx + ((rest.rA.x - 0.8) - from.rAx) * t;
-                    rightArm.rotation.y = neutral.rAy; // FIX 4: lock Y throughout all punch phases
+                    rightArm.rotation.y = neutral.rAy;
                     rightArm.rotation.z = from.rAz + ((rest.rA.z + 1.2) - from.rAz) * t;
                 }
                 if (rightForeArm) {
@@ -1024,9 +961,8 @@ export class CortexAnimations extends CharacterAnimations {
                 }
             });
 
-        // =========================================================================
-        // PHASE 2 — STRIKE  (thrust arm forward, straighten elbow, twist spine left)
-        // =========================================================================
+        // PHASE 2 — STRIKE
+
         const strike = { t: 0 };
         const strikeTween = new TWEEN.Tween(strike)
             .to({ t: 1 }, 100)
@@ -1046,9 +982,7 @@ export class CortexAnimations extends CharacterAnimations {
                 }
             });
 
-        // =========================================================================
-        // PHASE 3 — RECOVERY  (ALL animated bones → walk cycle's phase=0 neutral)
-        // =========================================================================
+        // PHASE 3 — RECOVERY (ALL animated bones → walk cycle's phase=0 neutral)
         const recovery = { t: 0 };
         const recoveryTween = new TWEEN.Tween(recovery)
             .to({ t: 1 }, 200)
@@ -1066,8 +1000,6 @@ export class CortexAnimations extends CharacterAnimations {
                     rightForeArm.rotation.x = (rest.rFA.x + 0.1) + (neutral.rFAx - (rest.rFA.x + 0.1)) * t;
                 }
 
-                // FIX 2: Left arm was abandoned for the whole punch; smoothly bring
-                // it from its frozen mid-walk position to the walk cycle neutral pose.
                 if (leftArm) {
                     leftArm.rotation.x = from.lAx + (neutral.lAx - from.lAx) * t;
                     leftArm.rotation.y = from.lAy + (neutral.lAy - from.lAy) * t;
@@ -1084,9 +1016,6 @@ export class CortexAnimations extends CharacterAnimations {
             .onComplete(() => {
                 character.isRotating = false;
 
-                // FIX 3 & 5: Bones are already sitting at the walk cycle's phase=0
-                // neutral pose. Pass skipReset=true so characterWalkAnimation does NOT
-                // stomp them back to T-pose before the first tween update frame fires.
                 self.characterWalkAnimation(character, true);
             });
 

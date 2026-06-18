@@ -1,26 +1,23 @@
-// ── All registered Sound instances (for global mute control) ─────────────
+const BASE = import.meta.env.BASE_URL;
 const sfxInstances = [];
 let sfxMuted = false;
 
 /**
- * A tiny wrapper around the HTML5 Audio element.
- * Every Sound instance is automatically tracked in a global registry
- * so the pause screen can mute / unmute all SFX at once.
+ * A simple audio wrapper that keeps track of every sound we create 
+ * so we can mute or unmute everything at the same time from a menu.
  */
 export class Sound {
     /**
-     * @param {string} filename - The name of the audio file located in the /sounds directory.
+     * @param {string} filename - Just the file name inside the public/sounds folder.
      */
     constructor(filename) {
-        this.src = `./sounds/${filename}`;
+        this.src = `${BASE}sounds/${filename}`;
         this.audio = new Audio(this.src);
-        // Register this SFX so we can globally mute it later
+        // Track this instance automatically for global mute controls
         sfxInstances.push(this);
     }
 
-    /**
-     * Plays the sound from the beginning.
-     */
+    // Rewind and play the sound from the very start
     start() {
         if (sfxMuted) return;
         this.audio.currentTime = 0;
@@ -29,26 +26,24 @@ export class Sound {
         });
     }
 
-    /**
-     * Stops the sound and resets its playback position.
-     */
+    // Freeze the sound and pop the playback marker back to zero
     stop() {
         this.audio.pause();
         this.audio.currentTime = 0;
     }
 }
 
-// ── Main Theme (singleton, looping) ──────────────────────────────────────
+// Background music setup
 let mainThemeAudio = null;
 let musicMuted = false;
 
 /**
- * Initialises and starts playing the main theme music on loop.
- * Safe to call multiple times — only the first call creates the Audio.
+ * Fires up the background music loop. 
+ * If it's already running, calling this again won't break anything.
  */
 export function startMainTheme() {
     if (!mainThemeAudio) {
-        mainThemeAudio = new Audio('./sounds/Crash Bandicoot OST - Main Menu.mp3');
+        mainThemeAudio = new Audio(`${BASE}sounds/Crash Bandicoot OST - Main Menu.mp3`);
         mainThemeAudio.loop = true;
         mainThemeAudio.volume = 0.4;
     }
@@ -60,8 +55,8 @@ export function startMainTheme() {
 }
 
 /**
- * Toggles the main theme music on/off.
- * @returns {boolean} true if music is now playing, false if muted.
+ * Flips the background music state between playing and paused.
+ * @returns {boolean} true if the music is actively playing now.
  */
 export function toggleMainTheme() {
     musicMuted = !musicMuted;
@@ -69,20 +64,18 @@ export function toggleMainTheme() {
         if (musicMuted) {
             mainThemeAudio.pause();
         } else {
-            mainThemeAudio.play().catch(() => {});
+            mainThemeAudio.play().catch(() => { });
         }
     }
     return !musicMuted;
 }
 
-/** @returns {boolean} true if music is currently playing (not muted). */
+// Quick check to see if background music is active
 export function isMusicPlaying() {
     return !musicMuted;
 }
 
-/**
- * Stops the main theme completely and resets playback.
- */
+// Kill the background music entirely and reset it
 export function stopMainTheme() {
     if (mainThemeAudio) {
         mainThemeAudio.pause();
@@ -90,23 +83,21 @@ export function stopMainTheme() {
     }
 }
 
-// ── Global SFX mute ──────────────────────────────────────────────────────
-
 /**
- * Toggles all game SFX (everything except the main theme).
- * When muted, ongoing sounds are paused and new .start() calls are no-ops.
- * @returns {boolean} true if SFX are now enabled, false if muted.
+ * Toggles all sound effects on or off at once, leaving the music alone.
+ * If muting, it cuts off any effects currently making noise.
+ * @returns {boolean} true if sound effects are now turned on.
  */
 export function toggleSfx() {
     sfxMuted = !sfxMuted;
     if (sfxMuted) {
-        // Pause every currently-playing SFX
+        // Cut the audio on all registered sound effects immediately
         sfxInstances.forEach((s) => s.stop());
     }
     return !sfxMuted;
 }
 
-/** @returns {boolean} true if SFX are currently enabled (not muted). */
+// Quick check to see if sound effects are enabled
 export function isSfxEnabled() {
     return !sfxMuted;
 }

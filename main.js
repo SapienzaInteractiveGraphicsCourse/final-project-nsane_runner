@@ -12,6 +12,8 @@ import { isPaused } from './game_management.js';
 import { startMainTheme } from './sounds.js';
 import { settings } from './settings.js';
 
+const BASE = import.meta.env.BASE_URL;
+
 // ---- HUD: inject template + CSS (same pattern as pause.html / pause.css) ----
 import './hud.css';
 import hudHtml from './hud.html?raw';
@@ -131,13 +133,13 @@ function loadAssets() {
     return Promise.all([
         selectedCharacter === 'crash' ? character.load(loader) : character.load(fbxLoader),
         AkuAku.load(loader),
-        loadGLTF('./wumpa/scene.gltf'),
-        loadGLTF('./gem/gems.glb'),
-        loadGLTF('./newlife/newlife.glb'),
+        loadGLTF(`${BASE}wumpa/scene.gltf`),
+        loadGLTF(`${BASE}gem/gems.glb`),
+        loadGLTF(`${BASE}newlife/newlife.glb`),
         loadGLTF(boundaryAssets.object1.path),
         loadGLTF(boundaryAssets.object2.path),
         loadGLTF(boundaryAssets.object3.path),
-        loadGLTF("./gear/gear.glb")
+        loadGLTF(`${BASE}gear/gear.glb`)
     ]).then(([, , wumpaGltf, gemGlb, newLifeGltf, object1Gltf, object2Gltf, object3Gltf, gearGltf]) => ({
         wumpaGltf,
         gemGlb,

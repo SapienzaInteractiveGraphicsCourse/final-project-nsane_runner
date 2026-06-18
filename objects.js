@@ -4,13 +4,14 @@ import { wumpa_animation, nitro_animation, dropped_item_animation, gear_animatio
 
 // Shared texture & material — loaded once, reused across all StandardBox instances.
 const _textureLoader = new THREE.TextureLoader();
-const _texture = _textureLoader.load('./textures/blocks/standard.jpg');
-const _textureNitro = _textureLoader.load('./textures/blocks/nitro.jpg');
-const _textureNitroUpper = _textureLoader.load('./textures/blocks/nitro_upper.jpg');
-const _textureBurubuga = _textureLoader.load('./textures/blocks/burubuga.jpg');
-const _textureNewLife = _textureLoader.load('./textures/blocks/newlife.png');
-const _textureCrashFace = _textureLoader.load('./textures/crashFace.png');
-const _textureQuestionBox = _textureLoader.load('./textures/blocks/question_block.png');
+const BASE = import.meta.env.BASE_URL;
+const _texture = _textureLoader.load(`${BASE}textures/blocks/standard.jpg`);
+const _textureNitro = _textureLoader.load(`${BASE}textures/blocks/nitro.jpg`);
+const _textureNitroUpper = _textureLoader.load(`${BASE}textures/blocks/nitro_upper.jpg`);
+const _textureBurubuga = _textureLoader.load(`${BASE}textures/blocks/burubuga.jpg`);
+const _textureNewLife = _textureLoader.load(`${BASE}textures/blocks/newlife.png`);
+const _textureCrashFace = _textureLoader.load(`${BASE}textures/crashFace.png`);
+const _textureQuestionBox = _textureLoader.load(`${BASE}textures/blocks/question_block.png`);
 
 const _material = new THREE.MeshStandardMaterial({ map: _texture });
 const _materialNitro = new THREE.MeshStandardMaterial({ map: _textureNitro });
@@ -56,24 +57,22 @@ const _materialsNewLife = [
     _materialNewLife,       // 5
 ]
 
-// Wumpa model scene — set externally via setWumpaModel() before calling initTile.
 let _wumpaModelCache = null;
 
-// Gem model scenes — one cache entry per gem colour, parsed from the GLB.
+// Gem model scenes
 const GEM_TYPES = ['gem_blue', 'gem_green', 'gem_purple', 'gem_red', 'gem_yellow'];
 const _gemModelCaches = {};
 
-// New Life model scene — set externally via setNewLifeModel() before spawning dropped lives.
 let _newLifeModelCache = null;
 
-// Boundary model scenes — set externally via setBoundaryModels() before spawning decorations.
+// Boundary model scenes
 const _boundaryModelCaches = [];
 
-// Gear model scene - set externally via setGearModel() before spawning gears.
+// Gear model scene
 let _gearModelCache = null;
 
 
-// --- BOX SIZE CONSTANTS ---
+// BOX SIZE CONSTANTS
 // All boxes use the same world-unit size (2×2×2) so they fit comfortably
 // inside a 5-unit lane cell without overlapping neighbouring cells.
 const BOX_SIZE = 2;
