@@ -22,7 +22,7 @@ The game is developed entirely in **JavaScript** using **THREE.js** for 3D rende
 ## ✨ Features
 
 - **Two Playable Characters** — Choose between **Crash Bandicoot** (GLTF model) or **Dr. Neo Cortex** (FBX model), each with their own procedural walk and attack animations.
-- **Three Selectable Maps** — *Desert Canyon*, *Red Wasteland*, and *Stone Fortress*, each with unique ground textures and decorative boundary objects (totems, statues, trees, etc.).
+- **Three Selectable Maps** — *N. Sanity Beach*, *Jungle Rollers*, and *Cortex Power*, each with unique ground textures and decorative boundary objects (totems, statues, trees, etc.).
 - **Three Difficulty Levels** — *Easy*, *Medium*, and *N. Sane!*, affecting starting speed, acceleration, maximum speed, number of lives, and obstacle spawn density.
 - **Dynamic Speed** — The game progressively accelerates as the player covers more distance, capped at the difficulty's max speed.
 - **Procedural Map Generation** — Infinite tile-based terrain with randomised placement of collectibles, crates, and hazards.
@@ -103,10 +103,7 @@ nsane_runner/
 
 ## 📜 Project Documentation
 
-- [Documentation 🔗](./documentation.pdf)
-
-    In this file a technical presentation of the project is provided, as well as a user manual to explore every aspect of the game.
-
+📄 **[Read the full documentation (PDF) 🔗](./public/docs/documentation.pdf)**
 ---
 
 ## 🌐 Play Online
