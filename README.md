@@ -2,7 +2,7 @@
 
 <br />
 <p align="center">
-    <img alt="NSANE RUNNER" title="NSANE RUNNER" src="./assets/images/favicon.jpg" width="300">
+    <img alt="NSANE RUNNER" title="NSANE RUNNER" src="./public/maps/N-Sane Runner logo.png" width="300">
 </p>
 
 <p align="center">
